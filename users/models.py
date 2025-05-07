@@ -73,3 +73,131 @@ class Student(AbstractBaseUser, PermissionsMixin):
 
     def get_short_name(self):
         return self.name
+    
+
+
+
+
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.utils import timezone
+
+# 假设 Department 模型将会在 'departments' app 中定义由成员A负责
+# from departments.models import Department # 最终需要取消注释并确保路径正确
+
+class TeacherManager(BaseUserManager):
+    def create_user(self, teacher_id, password=None, **extra_fields):
+        """
+        创建并保存一个具有给定工号和密码的教师用户。
+        """
+        if not teacher_id:
+            raise ValueError('教师必须有一个工号 (teacher_id)')
+
+        name = extra_fields.pop('name', None)
+        if not name:
+            raise ValueError('创建教师用户时必须提供姓名 (name)')
+
+        department = extra_fields.pop('department', None)
+        if not department:
+            # 假设调用者会传入 Department 实例，或者你需要在这里根据 department_id 查找
+            raise ValueError('创建教师用户时必须提供所属院系 (department)')
+        # 如果 department 是 department_id, 则需要:
+        # try:
+        #     DepartmentModel = self.model._meta.get_field('department').remote_field.model
+        #     department_instance = DepartmentModel.objects.get(pk=department) # 假设 department 变量存的是ID
+        # except DepartmentModel.DoesNotExist:
+        #     raise ValueError('提供的院系ID无效')
+        # department = department_instance # 现在 department 是 Department 实例
+
+        teacher = self.model(
+            teacher_id=teacher_id,
+            name=name,
+            department=department,
+            **extra_fields
+        )
+        teacher.set_password(password) # 哈希密码
+        teacher.save(using=self._db)
+        return teacher
+
+    def create_superuser(self, teacher_id, password=None, **extra_fields):
+        """
+        创建并保存一个具有给定工号和密码的超级用户教师。
+        """
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError('超级用户必须设置 is_staff=True.')
+        if extra_fields.get('is_superuser') is not True:
+            raise ValueError('超级用户必须设置 is_superuser=True.')
+
+        return self.create_user(teacher_id, password, **extra_fields)
+
+
+class Teacher(AbstractBaseUser, PermissionsMixin):
+    """
+    教师实体模型 (精简版)
+    - 教师可查看：工号、姓名、所属院系、可修改：姓名、密码。
+    - 工号和院系通常由管理员修改。
+    """
+    teacher_id = models.CharField(
+        verbose_name='教师工号',
+        max_length=50,
+        unique=True,
+        primary_key=True, # 工号作为主键
+        help_text='教师的唯一工号，用于登录系统。通常不可由用户自行修改。'
+    )
+    name = models.CharField(
+        verbose_name='教师姓名',
+        max_length=100,
+        help_text='教师的真实姓名。允许教师自行修改。'
+    )
+
+    department = models.ForeignKey(
+        'departments.Department', # 指向成员A定义的Department模型
+        on_delete=models.PROTECT,
+        verbose_name='所属院系',
+        null=False, # 教师必须属于一个院系
+        blank=False,
+        help_text='教师所属的行政院系。通常由管理员进行调整。'
+    )
+
+    # 密码字段由 AbstractBaseUser 隐式提供和管理
+    # 教师可以通过特定接口修改自己的密码
+
+    # --- Django用户模型所需的核心字段 ---
+    is_active = models.BooleanField(
+        default=True,
+        help_text='指定此用户是否被视为活动状态。'
+    )
+    is_staff = models.BooleanField(
+        default=False,
+        help_text='指定用户是否可以登录到此站点的管理后台。'
+    )
+    # is_superuser 字段由 PermissionsMixin 提供
+
+    date_joined = models.DateTimeField(
+        verbose_name='加入日期',
+        default=timezone.now,
+        help_text='用户账户创建的日期和时间'
+    )
+
+    objects = TeacherManager()
+
+    USERNAME_FIELD = 'teacher_id'
+    REQUIRED_FIELDS = ['name', 'department'] # 创建用户时（尤其superuser）必需的字段
+
+    class Meta:
+        verbose_name = '教师'
+        verbose_name_plural = '教师'
+        ordering = ['teacher_id']
+
+    def __str__(self):
+        return f"{self.name} ({self.teacher_id})"
+
+    def get_full_name(self):
+        return self.name
+
+    def get_short_name(self):
+        return self.name

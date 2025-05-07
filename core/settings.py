@@ -37,10 +37,11 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "users",       # 假设你的 Student 模型在这个 'users' 应用中
+    "users",       
     "departments",
     "courses",
-    "grades"
+    "grades",
+    "rest_framework",
 ]
 
 MIDDLEWARE = [

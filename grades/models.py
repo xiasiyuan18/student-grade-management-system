@@ -1,14 +1,12 @@
 from django.db import models
 from django.conf import settings # 用于关联自定义用户模型
 
-# 假设你的 Student 用户模型在 'users' 应用中
-# from users.models import Student (settings.AUTH_USER_MODEL 通常就够了)
 
+from users.models import Student 
 # 假设你的 Course 模型在 'courses' 应用中
 # from courses.models import Course
 
-# 假设你的 Teacher 模型在 'teachers' 应用中 (或者 'users' 应用)
-# from teachers.models import Teacher
+from users.models import Teacher
 
 class Grade(models.Model):
     """
@@ -27,10 +25,9 @@ class Grade(models.Model):
     )
 
     # 授课教师工号(外键关联教师表)
-    # 假设你在 'teachers' 应用中定义了 Teacher 模型
-    # 或者如果 Teacher 模型在 'users' 应用中，就是 'users.Teacher'
+
     teacher = models.ForeignKey(
-        'teachers.Teacher', # <--- 修改点: 明确为外键, 指向 Teacher 模型
+        'users.Teacher', # <--- 修改点: 明确为外键, 指向 Teacher 模型
         on_delete=models.SET_NULL, # 教师被删除，成绩中的教师信息设为NULL，或 PROTECT
         null=True, # 允许为NULL，如果on_delete=SET_NULL
         # blank=True, # 根据图片，它是主键的一部分，所以理论上不应为 null/blank，
@@ -86,7 +83,7 @@ class Grade(models.Model):
         verbose_name_plural = verbose_name
         constraints = [
             models.UniqueConstraint(
-                fields=['student', 'course', 'teacher', 'term'], # <--- 修改点: 使用 teacher 外键字段
+                fields=['student', 'course', 'teacher', 'term'],
                 name='unique_student_course_teacher_term_grade'
             )
         ]

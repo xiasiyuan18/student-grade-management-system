@@ -37,10 +37,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "users",       
-    "departments",
-    "courses",
-    "grades",
+    "users.apps.UsersConfig",       
+    "departments.apps.DepartmentsConfig",
+    "courses.apps.CoursesConfig",
+    "grades.apps.GradesConfig",
     "rest_framework",
 ]
 
@@ -80,9 +80,9 @@ WSGI_APPLICATION = "core.wsgi.application"
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'your_student_db_name',  # <--- 修改: 你的数据库名称
-        'USER': 'your_mysql_username',    # <--- 修改: 你的 MySQL 用户名
-        'PASSWORD': 'your_mysql_password',# <--- 修改: 你的 MySQL 密码
+        'NAME': 'student-grade-management-system',  # <--- 修改: 你的数据库名称
+        'USER': 'root',    # <--- 修改: 你的 MySQL 用户名
+        'PASSWORD': 'xiasiyuan18',# <--- 修改: 你的 MySQL 密码
         'HOST': 'localhost',              # <--- 修改: (通常是 'localhost' 或数据库服务器 IP)
         'PORT': '3306',                   # <--- 修改: (MySQL 默认端口)
         'OPTIONS': {
@@ -113,7 +113,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # <--- 添加: 指定自定义的用户模型 ---
 # 假设你的 Student 模型类名为 Student，且位于 'users' 应用的 models.py 文件中
-AUTH_USER_MODEL = 'users.Student'
+AUTH_USER_MODEL = 'users.CustomUser'
 
 
 # Internationalization

@@ -1,203 +1,187 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractUser, BaseUserManager, Group, Permission
+from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
-class StudentManager(BaseUserManager):
-    def create_user(self, student_id, password=None, **extra_fields):
-        """
-        创建并保存一个具有给定学号和密码的学生用户。
-        """
-        if not student_id:
-            raise ValueError('学生必须有一个学号')
-        student = self.model(student_id=student_id, **extra_fields)
-        student.set_password(password)
-        student.save(using=self._db)
-        return student
+# 确保 Department 和 Major 模型定义在 'departments.models'
+# from departments.models import Department, Major # 如果需要直接类型提示或在 Manager 中使用
 
-    def create_superuser(self, student_id, password=None, **extra_fields):
-        """
-        创建并保存一个具有给定学号和密码的超级用户学生。
-        """
+# --- 1. 自定义用户管理器 (CustomUserManager) ---
+# 对于继承自 AbstractUser 的模型，通常可以不自定义 Manager，除非有非常特殊的创建逻辑。
+# 如果需要，可以像这样定义：
+class CustomUserManager(BaseUserManager):
+    """
+    自定义用户管理器，用于 AUTH_USER_MODEL = CustomUser
+    """
+    def create_user(self, username, email=None, password=None, role=None, **extra_fields):
+        if not username:
+            raise ValueError(_('用户必须设置用户名'))
+        email = self.normalize_email(email)
+        # 如果 role 是创建用户时的必需字段，可以在这里处理
+        if role:
+            extra_fields.setdefault('role', role)
+
+        user = self.model(username=username, email=email, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('role', CustomUser.Role.ADMIN) # 超级用户默认为 ADMIN 角色
 
         if extra_fields.get('is_staff') is not True:
-            raise ValueError('超级用户必须将 is_staff 设置为 True。')
+            raise ValueError(_('超级用户必须将 is_staff 设置为 True。'))
         if extra_fields.get('is_superuser') is not True:
-            raise ValueError('超级用户必须将 is_superuser 设置为 True。')
+            raise ValueError(_('超级用户必须将 is_superuser 设置为 True。'))
+        
+        return self.create_user(username, email, password, **extra_fields)
 
-        return self.create_user(student_id, password, **extra_fields)
+# --- 2. 统一的自定义用户模型 (CustomUser) ---
+class CustomUser(AbstractUser):
+    """
+    统一的自定义用户模型。
+    学生、教师、管理员都基于此模型创建用户账户。
+    登录凭证是 username 和 password (AbstractUser 默认)。
+    """
+    class Role(models.TextChoices):
+        STUDENT = 'STUDENT', _('学生')
+        TEACHER = 'TEACHER', _('教师')
+        ADMIN = 'ADMIN', _('管理员')
 
-class Student(AbstractBaseUser, PermissionsMixin):
+    # AbstractUser 已经包含了:
+    # username, first_name, last_name, email, password,
+    # groups, user_permissions,
+    # is_staff, is_active, is_superuser,
+    # last_login, date_joined
+
+    role = models.CharField(
+        _('角色'),
+        max_length=10,
+        choices=Role.choices,
+        default=Role.STUDENT, # 可以根据注册逻辑设置默认角色
+        help_text=_('用户账户的角色类型')
+    )
+
+    # 如果你想用 email 作为登录凭证，可以在 Meta 中设置 USERNAME_FIELD = 'email'
+    # 并将 username 字段的 unique=False, null=True, blank=True （或者直接移除 username 如果不需要）
+    # REQUIRED_FIELDS 也要相应调整。
+    # 但通常保留 username 用于登录，email 用于通知等，是一个不错的选择。
+
+    # objects = CustomUserManager() # 只有在你定义了上面的 CustomUserManager 并且想用它时才取消注释
+
+    def __str__(self):
+        return self.username
+
+    class Meta:
+        verbose_name = _('系统用户')
+        verbose_name_plural = _('系统用户')
+
+# --- 3. 学生 Profile 模型 ---
+class Student(models.Model):
     """
-    学生模型
+    学生 Profile 模型，存储学生特有的信息。
+    通过 OneToOneField 关联到 CustomUser。
     """
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        primary_key=True, # 将 user 字段设为主键，实现严格的 Profile 模式
+        related_name='student_profile',
+        verbose_name=_('关联用户账户')
+    )
+    student_id_num = models.CharField( # 学号，作为业务标识符，确保唯一
+        verbose_name=_('学号'),
+        max_length=50,
+        unique=True,
+        help_text=_('学生的唯一学号，不同于登录用户名')
+    )
+    # 如果 CustomUser 中已有 first_name, last_name，这里的 name 可以考虑是否需要
+    # 如果需要独立的姓名，可以保留；否则可以通过 user.get_full_name() 获取
+    name = models.CharField(verbose_name=_('姓名'), max_length=100, help_text=_('学生姓名，可以与用户账户名不同'))
+    
+    id_card = models.CharField(verbose_name=_('身份证号'), max_length=18, unique=True, help_text=_('学生身份证号码'))
+    
     GENDER_CHOICES = [
         ('男', '男'),
         ('女', '女'),
     ]
+    gender = models.CharField(_('性别'), max_length=2, choices=GENDER_CHOICES, help_text=_('学生性别'))
+    birth_date = models.DateField(_('出生日期'), blank=True, null=True, help_text=_('学生出生日期'))
+    phone = models.CharField(_('电话'), max_length=50, blank=True, null=True, help_text=_('学生联系电话'))
+    dormitory = models.CharField(_('宿舍'), max_length=100, blank=True, null=True, help_text=_('学生住宿信息'))
+    home_address = models.CharField(_('家庭地址'), max_length=255, blank=True, null=True, help_text=_('学生家庭住址'))
+    grade_year = models.IntegerField(_('年级/入学年份'), blank=True, null=True, help_text=_('学生入学年份')) # 原 grade 字段
 
-    student_id = models.CharField(verbose_name='学号', max_length=50, unique=True, help_text='学生的唯一标识')
-    name = models.CharField(verbose_name='姓名', max_length=100, help_text='学生姓名')
-    id_card = models.CharField(verbose_name='身份证号', max_length=18, unique=True, help_text='学生身份证号码')
-    dormitory = models.CharField(verbose_name='宿舍', max_length=100, blank=True, null=True, help_text='学生住宿信息')
-    home_address = models.CharField(verbose_name='家庭地址', max_length=255, blank=True, null=True, help_text='学生家庭住址')
-    phone = models.CharField(verbose_name='电话', max_length=50, blank=True, null=True, help_text='学生联系电话')
-    birth_date = models.DateField(verbose_name='出生日期', blank=True, null=True, help_text='学生出生日期')
-    gender = models.CharField(verbose_name='性别', max_length=2, choices=GENDER_CHOICES, help_text='学生性别')
-    grade = models.IntegerField(verbose_name='年级', blank=True, null=True, help_text='学生入学年份')
-    major_id = models.IntegerField(verbose_name='专业编号', help_text='学生主修专业编号') # 假设专业是一个独立的模型，这里用ID关联
-    department_id = models.IntegerField(verbose_name='主修院系编号', help_text='学生行政院系编号') # 假设院系是一个独立的模型，这里用ID关联
-    minor_department_id = models.IntegerField(verbose_name='辅修院系编号', blank=True, null=True, help_text='学生辅修院系编号') # 假设院系是一个独立的模型，这里用ID关联
-    degree_level = models.CharField(verbose_name='学位等级', max_length=20, help_text='学生当前学位等级')
-    credits_earned = models.DecimalField(verbose_name='已修学分', max_digits=5, decimal_places=1, default=0.0, help_text='学生已获得的学分')
-    # 密码字段由 AbstractBaseUser 提供
-    #到时候可以使用set_password方法来设置密码.check_password方法来验证密码
-
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False) # 普通学生不是教职工
-
-    objects = StudentManager()
-
-    USERNAME_FIELD = 'student_id' # 使用学号作为登录用户名
-    REQUIRED_FIELDS = ['name', 'id_card', 'gender', 'major_id', 'department_id', 'degree_level'] # 创建超级用户时必须填写的字段
-
-    class Meta:
-        verbose_name = '学生'
-        verbose_name_plural = verbose_name
+    major = models.ForeignKey(
+        'departments.Major',
+        on_delete=models.PROTECT, # 或 SET_NULL, 根据业务逻辑
+        verbose_name=_('专业'),
+        null=True, blank=True,
+        help_text=_('学生主修专业')
+    )
+    department = models.ForeignKey(
+        'departments.Department',
+        on_delete=models.PROTECT, # 或 SET_NULL
+        verbose_name=_('主修院系'),
+        null=True, blank=True,
+        related_name='major_department_students',
+        help_text=_('学生行政院系')
+    )
+    minor_department = models.ForeignKey(
+        'departments.Department',
+        on_delete=models.SET_NULL,
+        verbose_name=_('辅修院系'),
+        blank=True, null=True,
+        related_name='minor_department_students',
+        help_text=_('学生辅修院系')
+    )
+    degree_level = models.CharField(_('学位等级'), max_length=20, help_text=_('学生当前学位等级'))
+    credits_earned = models.DecimalField(_('已修学分'), max_digits=5, decimal_places=1, default=0.0, help_text=_('学生已获得的学分'))
 
     def __str__(self):
-        return self.name
+        return f"{self.name or self.user.username} (学号: {self.student_id_num})"
 
-    def get_full_name(self):
-        return self.name
+    class Meta:
+        verbose_name = _('学生档案')
+        verbose_name_plural = _('学生档案')
 
-    def get_short_name(self):
-        return self.name
-    
-
-
-
-
-from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.utils import timezone
-
-# 假设 Department 模型将会在 'departments' app 中定义由成员A负责
-# from departments.models import Department # 最终需要取消注释并确保路径正确
-
-class TeacherManager(BaseUserManager):
-    def create_user(self, teacher_id, password=None, **extra_fields):
-        """
-        创建并保存一个具有给定工号和密码的教师用户。
-        """
-        if not teacher_id:
-            raise ValueError('教师必须有一个工号 (teacher_id)')
-
-        name = extra_fields.pop('name', None)
-        if not name:
-            raise ValueError('创建教师用户时必须提供姓名 (name)')
-
-        department = extra_fields.pop('department', None)
-        if not department:
-            # 假设调用者会传入 Department 实例，或者你需要在这里根据 department_id 查找
-            raise ValueError('创建教师用户时必须提供所属院系 (department)')
-        # 如果 department 是 department_id, 则需要:
-        # try:
-        #     DepartmentModel = self.model._meta.get_field('department').remote_field.model
-        #     department_instance = DepartmentModel.objects.get(pk=department) # 假设 department 变量存的是ID
-        # except DepartmentModel.DoesNotExist:
-        #     raise ValueError('提供的院系ID无效')
-        # department = department_instance # 现在 department 是 Department 实例
-
-        teacher = self.model(
-            teacher_id=teacher_id,
-            name=name,
-            department=department,
-            **extra_fields
-        )
-        teacher.set_password(password) # 哈希密码
-        teacher.save(using=self._db)
-        return teacher
-
-    def create_superuser(self, teacher_id, password=None, **extra_fields):
-        """
-        创建并保存一个具有给定工号和密码的超级用户教师。
-        """
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_active', True)
-
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError('超级用户必须设置 is_staff=True.')
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError('超级用户必须设置 is_superuser=True.')
-
-        return self.create_user(teacher_id, password, **extra_fields)
-
-
-class Teacher(AbstractBaseUser, PermissionsMixin):
+# --- 4. 教师 Profile 模型 ---
+class Teacher(models.Model):
     """
-    教师实体模型 (精简版)
-    - 教师可查看：工号、姓名、所属院系、可修改：姓名、密码。
-    - 工号和院系通常由管理员修改。
+    教师 Profile 模型，存储教师特有的信息。
+    通过 OneToOneField 关联到 CustomUser。
     """
-    teacher_id = models.CharField(
-        verbose_name='教师工号',
+    user = models.OneToOneField(
+        CustomUser,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='teacher_profile',
+        verbose_name=_('关联用户账户')
+    )
+    teacher_id_num = models.CharField( # 工号，作为业务标识符，确保唯一
+        verbose_name=_('教师工号'),
         max_length=50,
         unique=True,
-        primary_key=True, # 工号作为主键
-        help_text='教师的唯一工号，用于登录系统。通常不可由用户自行修改。'
+        help_text=_('教师的唯一工号，不同于登录用户名')
     )
-    name = models.CharField(
-        verbose_name='教师姓名',
-        max_length=100,
-        help_text='教师的真实姓名。允许教师自行修改。'
-    )
+    # name 可以使用 CustomUser 的 first_name, last_name
+    # 如果需要独立的姓名，可以保留；否则可以通过 user.get_full_name() 获取
+    name = models.CharField(verbose_name=_('教师姓名'), max_length=100, help_text=_('教师姓名，可以与用户账户名不同'))
 
     department = models.ForeignKey(
-        'departments.Department', # 指向成员A定义的Department模型
+        'departments.Department',
         on_delete=models.PROTECT,
-        verbose_name='所属院系',
-        null=False, # 教师必须属于一个院系
-        blank=False,
-        help_text='教师所属的行政院系。通常由管理员进行调整。'
+        verbose_name=_('所属院系'),
+        # null=False, blank=False, # 如果教师必须属于一个院系
+        help_text=_('教师所属的行政院系')
     )
-
-    # 密码字段由 AbstractBaseUser 隐式提供和管理
-    # 教师可以通过特定接口修改自己的密码
-
-    # --- Django用户模型所需的核心字段 ---
-    is_active = models.BooleanField(
-        default=True,
-        help_text='指定此用户是否被视为活动状态。'
-    )
-    is_staff = models.BooleanField(
-        default=False,
-        help_text='指定用户是否可以登录到此站点的管理后台。'
-    )
-    # is_superuser 字段由 PermissionsMixin 提供
-
-    date_joined = models.DateTimeField(
-        verbose_name='加入日期',
-        default=timezone.now,
-        help_text='用户账户创建的日期和时间'
-    )
-
-    objects = TeacherManager()
-
-    USERNAME_FIELD = 'teacher_id'
-    REQUIRED_FIELDS = ['name', 'department'] # 创建用户时（尤其superuser）必需的字段
-
-    class Meta:
-        verbose_name = '教师'
-        verbose_name_plural = '教师'
-        ordering = ['teacher_id']
+    # is_active, is_staff, date_joined 等信息由 CustomUser 管理
 
     def __str__(self):
-        return f"{self.name} ({self.teacher_id})"
+        return f"{self.name or self.user.username} (工号: {self.teacher_id_num})"
 
-    def get_full_name(self):
-        return self.name
-
-    def get_short_name(self):
-        return self.name
+    class Meta:
+        verbose_name = _('教师档案')
+        verbose_name_plural = _('教师档案')

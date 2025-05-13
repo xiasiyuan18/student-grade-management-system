@@ -42,6 +42,8 @@ INSTALLED_APPS = [
     "courses.apps.CoursesConfig",
     "grades.apps.GradesConfig",
     "rest_framework",
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist", # <--- 如果需要登出时使refresh token失效
 ]
 
 MIDDLEWARE = [
@@ -139,3 +141,51 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication', # <--- 指定JWT为默认认证方式
+        # 如果您还想支持Django的Session认证（例如为了让浏览器可以直接访问某些受保护的API或Admin后台），可以保留或添加:
+        # 'rest_framework.authentication.SessionAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated', # <--- API默认需要用户已认证
+                                                     # 登录接口本身需要设置为 AllowAny
+    ),
+    # 可以添加其他全局DRF设置，例如分页、渲染器、解析器等
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    # 'PAGE_SIZE': 10,
+}
+
+from datetime import timedelta # 用于设置时间
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # 访问令牌的有效期，例如60分钟
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),     # 刷新令牌的有效期，例如1天
+    "ROTATE_REFRESH_TOKENS": True, # 建议开启: 每次使用refresh token获取新的access token时，也会返回一个新的refresh token
+    "BLACKLIST_AFTER_ROTATION": True, # 建议开启: 如果ROTATE_REFRESH_TOKENS为True，旧的refresh token会加入黑名单
+    "UPDATE_LAST_LOGIN": True,       # 当用户通过token认证（通常是刷新token时）或登录时，更新其last_login字段
+
+    "ALGORITHM": "HS256", # 加密算法
+    # "SIGNING_KEY": SECRET_KEY, # 默认使用 settings.SECRET_KEY，通常不需要修改
+    # "VERIFYING_KEY": None, # 通常不需要修改
+
+    "AUTH_HEADER_TYPES": ("Bearer",), # HTTP头部中Token的类型，例如: "Authorization: Bearer <access_token>"
+    "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION", # 包含Token的HTTP头名称
+
+    # 非常重要: 将这些字段与您的 CustomUser 模型对应起来
+    "USER_ID_FIELD": "pk", # CustomUser的主键字段名 (AbstractUser默认是 'id'，其值为pk)
+                           # 由于您在 CustomUser 中将 user_id 设为了主键，这里也可以是 "user_id"
+                           # "pk" 是一个通用的指向主键的方式
+    "USER_ID_CLAIM": "user_id", # JWT Payload 中代表用户ID的声明(claim)的名称
+
+    "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
+    "TOKEN_TYPE_CLAIM": "token_type", # JWT Payload 中代表token类型的声明的名称
+
+    "JTI_CLAIM": "jti", # JWT ID, 用于唯一标识token，有助于防止重放攻击和实现黑名单
+
+    # "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
+    # "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
+    # "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
+}

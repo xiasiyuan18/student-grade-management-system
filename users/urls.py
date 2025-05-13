@@ -44,3 +44,42 @@ urlpatterns = [
 #     path('login/', LoginAPI.as_view(), name='login'),
 #     path('register/', RegisterAPI.as_view(), name='register'),
 # ]
+
+
+
+
+# 导入您在 users/views.py 中创建的视图
+from .views import (
+    UnifiedLoginAPIView,  # 或者您命名的 LoginAPIView
+    LogoutAPIView,
+    TeacherProfileViewSet,
+    StudentProfileViewSet, # 假设成员B的 StudentProfileViewSet 也在这里或您已创建
+    CustomUserViewSet      # 管理 CustomUser 的 ViewSet
+)
+
+# 如果使用 djangorestframework-simplejwt 并希望提供刷新token的端点
+from rest_framework_simplejwt.views import TokenRefreshView
+
+# 为 ViewSet 创建路由
+router = DefaultRouter()
+router.register(r'users', CustomUserViewSet, basename='customuser') # URL: /api/users/users/
+router.register(r'students', StudentProfileViewSet, basename='studentprofile') # URL: /api/users/students/
+router.register(r'teachers', TeacherProfileViewSet, basename='teacherprofile') # URL: /api/users/teachers/
+# 注意：上面的 URL 前缀是相对于 "api/users/" 的，所以完整路径会是 /api/users/users/, /api/users/students/ 等
+
+# 定义 urlpatterns
+urlpatterns = [
+    # 包含由 router 自动生成的 ViewSet URL
+    path('', include(router.urls)),
+
+    # 单独的认证相关URL
+    path('auth/login/', UnifiedLoginAPIView.as_view(), name='api_login'),
+    path('auth/logout/', LogoutAPIView.as_view(), name='api_logout'),
+
+    # (可选) 如果使用 Simple JWT 并希望提供刷新 access token 的端点
+    path('auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    # 您可能还会有其他用户相关的URL，例如注册、密码修改等
+    # path('auth/register/', RegisterAPIView.as_view(), name='api_register'),
+    # path('auth/password/change/', ChangePasswordView.as_view(), name='api_password_change'),
+]

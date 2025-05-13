@@ -147,3 +147,50 @@ class TeacherProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('user', 'username', 'email', 'user_role', 'department_name')
 
     # 同样，create 和 update 方法可能需要处理 User 和 Profile 的关联
+
+
+
+from django.contrib.auth import authenticate, get_user_model
+from django.utils.translation import gettext_lazy as _
+
+CustomUser = get_user_model() # 获取在 settings.py 中定义的 AUTH_USER_MODEL
+
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField( # AbstractUser 默认的登录字段是 username
+        label=_("用户名"), # 前端对应的可能是学号、工号或管理员设置的用户名
+        write_only=True,
+        required=True
+    )
+    password = serializers.CharField(
+        label=_("密码"),
+        style={'input_type': 'password'},
+        trim_whitespace=False,
+        write_only=True,
+        required=True
+    )
+
+    def validate(self, attrs):
+        username = attrs.get('username')
+        password = attrs.get('password')
+        request = self.context.get('request')
+
+        if not username or not password:
+            # 这个检查其实可以由 required=True 处理，但多一层保险
+            raise serializers.ValidationError(_('必须提供用户名和密码。'), code='authorization')
+
+        # 使用 Django 的 authenticate 函数进行认证
+        # 它会使用 settings.AUTHENTICATION_BACKENDS 中的后端
+        # 默认的 ModelBackend 会基于 AUTH_USER_MODEL (CustomUser) 和其 USERNAME_FIELD (username) 进行验证
+        user = authenticate(request=request, username=username, password=password)
+
+        if not user:
+            # 用户名或密码错误
+            raise serializers.ValidationError(_('用户名或密码有误。'), code='authorization')
+
+        if not user.is_active:
+            # 用户账户被禁用
+            raise serializers.ValidationError(_('用户账户已被禁用。'), code='authorization')
+
+        # 认证成功，将 user 对象附加到 attrs 中，方便视图使用
+        attrs['user'] = user
+        return attrs

@@ -22,5 +22,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/users/", include("users.urls")),
     path("api/grades/", include("grades.urls")),
+    # 新增：包含 departments app 的 API URL
+    path("api/departments/", include("departments.urls")), 
     path("api-auth/", include("rest_framework.urls", namespace="rest_framework")),
 ]

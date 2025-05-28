@@ -262,3 +262,50 @@ class LoginSerializer(serializers.Serializer):
         # 认证成功，将 user 对象附加到 attrs 中，方便视图使用
         attrs["user"] = user
         return attrs
+
+
+
+
+
+class UserSelfUpdateSerializer(serializers.ModelSerializer):
+    """用户更新自己非敏感基础信息的序列化器 (CustomUser)"""
+    class Meta:
+        model = CustomUser
+        fields = ['first_name', 'last_name', 'email'] # 用户可以修改这些
+        # username (登录ID) 通常不允许修改
+        # role, is_active, is_staff, is_superuser 绝对不能由用户自己修改
+
+class StudentProfileSelfUpdateSerializer(serializers.ModelSerializer):
+    """学生更新自己档案非身份相关信息的序列化器"""
+    # 可以在这里嵌套 UserSelfUpdateSerializer 用于同时修改 CustomUser 的部分信息
+    # user = UserSelfUpdateSerializer(partial=True, required=False) # 如果允许同时更新基础用户信息
+
+    class Meta:
+        model = Student
+        # 列出学生可以自己修改的字段
+        fields = ['name', 'id_card', 'gender', 'birth_date', 'phone', 'dormitory', 'home_address']
+        # student_id_num, grade_year, major, department, minor_department, degree_level, credits_earned
+        # 这些通常是“身份”或由系统/管理员管理的信息，不应由学生直接修改
+        # 如果允许修改部分，可以加入到 fields 中
+
+    # 如果同时更新 User，需要重写 update 方法
+    # def update(self, instance, validated_data):
+    #     user_data = validated_data.pop('user', None)
+    #     if user_data and instance.user:
+    #         user_serializer = UserSelfUpdateSerializer(instance.user, data=user_data, partial=True)
+    #         if user_serializer.is_valid():
+    #             user_serializer.save()
+    #         else:
+    #             raise serializers.ValidationError(user_serializer.errors)
+    #     return super().update(instance, validated_data)
+
+
+class TeacherProfileSelfUpdateSerializer(serializers.ModelSerializer):
+    """教师更新自己档案非身份相关信息的序列化器"""
+    # user = UserSelfUpdateSerializer(partial=True, required=False)
+
+    class Meta:
+        model = Teacher
+        # 列出教师可以自己修改的字段
+        fields = ['name'] # 例如，教师主要修改姓名，密码通过专门接口
+        # teacher_id_num, department, title 通常由管理员管理

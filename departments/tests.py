@@ -127,16 +127,27 @@ class MajorAPITests(APITestCase):
         cls.list_url = reverse('departments:major-list') # 假设 app_name='departments', basename='major'
         cls.detail_url = lambda pk: reverse('departments:major-detail', kwargs={'pk': pk})
 
+    
     def test_list_majors_authenticated_user(self):
         """测试登录用户可以查看专业列表"""
+        # 使用在 setUpTestData 中通过 reverse 生成的 URL
+        url_to_test = self.list_url 
+        
         self.client.force_authenticate(user=self.student_user)
-        response = self.client.get(self.list_url)
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        # ... 更多断言 ...
-        self.client.logout()
+        response = self.client.get(url_to_test)
+
+        # 直接断言状态码是否为 200 OK
+        # 您可以添加一个自定义消息，以便在测试失败时提供更多信息
+        self.assertEqual(
+            response.status_code, 
+            status.HTTP_200_OK,
+            f"请求 {url_to_test} 失败，期望状态码 200，实际为 {response.status_code}，"
+            f"响应内容: {response.content.decode()}" 
+        )
 
     def test_create_major_admin_user_success(self):
         """测试管理员可以创建专业"""
+        print(f"Generated URL for major create (POST): {self.list_url}")
         self.client.force_authenticate(user=self.admin_user)
         data = {
             'major_name': '网络工程',

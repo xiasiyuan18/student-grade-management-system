@@ -154,16 +154,16 @@ class Student(models.Model):
         "departments.Major",
         on_delete=models.PROTECT,  # 或 SET_NULL, 根据业务逻辑
         verbose_name=_("专业"),
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         help_text=_("学生主修专业"),
     )
     department = models.ForeignKey(
         "departments.Department",
         on_delete=models.PROTECT,  # 或 SET_NULL
         verbose_name=_("主修院系"),
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         related_name="major_department_students",
         help_text=_("学生行政院系"),
     )

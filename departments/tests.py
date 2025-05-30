@@ -47,12 +47,12 @@ class DepartmentAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED) # 或 403，取决于你的默认认证
 
     def test_list_departments_authenticated_student_allowed_read_only(self):
-        """测试学生用户可以读取院系列表 (假设权限是 IsAdminOrReadOnly 或类似)"""
-        self.client.force_authenticate(user=self.student_user) # 强制认证为学生用户
+        """测试学生用户可以读取院系列表"""
+        self.client.force_authenticate(user=self.student_user) 
         response = self.client.get(self.list_url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 2) # 假设分页关闭或这是第一页
-        self.client.logout() # 登出
+        self.assertEqual(len(response.data['results']), 2) # 期望返回两个院系 (由 setUpTestData 创建)
+        self.client.logout()
 
     def test_create_department_admin_user_success(self):
         """测试管理员用户可以创建院系"""

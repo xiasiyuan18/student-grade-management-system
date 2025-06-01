@@ -117,7 +117,6 @@ class StudentProfileSerializer(serializers.ModelSerializer):
         queryset=Department.objects.all(),
         allow_null=True,
         required=False,
-        source="department",
     )  # 明确 source
     minor_department = serializers.PrimaryKeyRelatedField(
         queryset=Department.objects.all(), allow_null=True, required=False

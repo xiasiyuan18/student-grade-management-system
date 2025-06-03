@@ -199,6 +199,7 @@ class StudentGradeForTeachingAssignmentView(views.APIView):
                 )
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 class MyGradesListView(generics.ListAPIView):
     """
     学生查询自己所有成绩的视图。

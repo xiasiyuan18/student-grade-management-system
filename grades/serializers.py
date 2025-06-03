@@ -2,18 +2,14 @@
 from rest_framework import serializers
 
 from courses.models import Course, TeachingAssignment  # 用于嵌套或ID表示
-from users.models import Student  # 用于嵌套或ID表示
+from users.models import Student, Teacher   # 用于嵌套或ID表示
 
 from .models import Grade
 
 
 # 为了在GradeSerializer中显示更友好的信息，可以创建简单的嵌套序列化器
 class SimpleStudentSerializer(serializers.ModelSerializer):
-    student_id_num = serializers.CharField(
-        source="student.student_id_num"
-    )  # 假设Student模型有student_id_num
-    name = serializers.CharField(source="student.name")  # 假设Student模型有name
-    full_name = serializers.SerializerMethodField()  # 或者直接使用Student模型的__str__
+    full_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Student
@@ -21,6 +17,7 @@ class SimpleStudentSerializer(serializers.ModelSerializer):
             "user_id",
             "name",
             "student_id_num",
+            "full_name",
         ]  # user_id 是 Student Profile 的主键 (user_id)
 
     def get_full_name(self, obj):
@@ -38,11 +35,12 @@ class SimpleTeacherSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
 
     class Meta:
-        model = Student  # TODO: This should likely be Teacher, assuming a Teacher model exists in users.models
+        model = Teacher  # TODO: This should likely be Teacher, assuming a Teacher model exists in users.models
         fields = [
             "user_id",
             "name",
             "teacher_id_num",
+            "full_name",
         ]  # user_id 是 Teacher Profile 的主键 (user_id)
 
     def get_full_name(self, obj):

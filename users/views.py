@@ -197,19 +197,18 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return CustomUserSerializer # 管理员使用完整功能的序列化器
 
     def get_permissions(self):
+        # 将 'list' action 的权限从 IsAdminRole 改为 IsAuthenticated
         if self.action == 'list':
-            permission_classes = [IsAdminRole]
-        elif self.action == 'create': # 通常注册有单独API，这里设为管理员创建
+            # 允许任何已认证用户查看教师列表
+            permission_classes = [permissions.IsAuthenticated] 
+        elif self.action == 'create':
             permission_classes = [IsAdminRole]
         elif self.action in ['retrieve', 'update', 'partial_update']:
-            # 用户可以查看/修改自己的信息，管理员可以查看/修改任何用户信息
             permission_classes = [permissions.IsAuthenticated, IsOwnerOrAdminOnly]
         elif self.action == 'destroy':
             permission_classes = [IsAdminRole]
-        elif self.action == 'me': # 如果添加 'me' action
-            permission_classes = [permissions.IsAuthenticated]
         else:
-            permission_classes = [permissions.IsAdminUser] # 默认更严格
+            permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     # 不允许普通用户修改自己的角色、is_staff, is_superuser, is_active 等

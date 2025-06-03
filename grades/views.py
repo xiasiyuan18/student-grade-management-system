@@ -28,6 +28,18 @@ class IsTeacher(permissions.BasePermission):
         )
 
 
+class IsStudentRole(permissions.BasePermission):
+    """
+    自定义权限，只允许学生访问。
+    """
+
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.role == CustomUser.Role.STUDENT
+        )
+
+
 # API 端点: /api/teaching-assignments/{teaching_assignment_id}/grades/
 # 这个端点用于教师管理其特定授课安排下的学生成绩
 
@@ -187,3 +199,24 @@ class StudentGradeForTeachingAssignmentView(views.APIView):
                 )
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+class MyGradesListView(generics.ListAPIView):
+    """
+    学生查询自己所有成绩的视图。
+    GET: /api/grades/my-grades/
+    """
+    serializer_class = GradeSerializer
+    # 权限设置为：必须是已认证用户，且角色必须是学生
+    permission_classes = [permissions.IsAuthenticated, IsStudentRole]
+
+    def get_queryset(self):
+        """
+        此视图只返回当前登录学生用户的所有成绩记录。
+        """
+        user = self.request.user
+        # 通过 user -> student_profile -> grades_received 反向查询
+        return Grade.objects.filter(student__user=user).select_related(
+            'student',
+            'teaching_assignment__course',
+            'teaching_assignment__teacher'
+        ).order_by('-teaching_assignment__semester') # 按学期降序排列

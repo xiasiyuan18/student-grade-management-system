@@ -84,7 +84,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "student-grade-management-system",  # <--- 修改: 你的数据库名称
         "USER": "root",  # <--- 修改: 你的 MySQL 用户名
-        "PASSWORD": "xiasiyuan18",  # <--- 修改: 你的 MySQL 密码
+        "PASSWORD": "123456",  # <--- 修改: 你的 MySQL 密码
         "HOST": "localhost",  # <--- 修改: (通常是 'localhost' 或数据库服务器 IP)
         "PORT": "3306",  # <--- 修改: (MySQL 默认端口)
         "OPTIONS": {
@@ -145,17 +145,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",  # <--- 指定JWT为默认认证方式
-        # 如果您还想支持Django的Session认证（例如为了让浏览器可以直接访问某些受保护的API或Admin后台），可以保留或添加:
-        # 'rest_framework.authentication.SessionAuthentication',
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",  # <--- API默认需要用户已认证
-        # 登录接口本身需要设置为 AllowAny
+        "rest_framework.permissions.AllowAny",  # <--- 修改为 AllowAny
     ),
-    # 可以添加其他全局DRF设置，例如分页、渲染器、解析器等
-    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    # 'PAGE_SIZE': 10,
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
 }
 
 from datetime import timedelta  # 用于设置时间

@@ -7,6 +7,7 @@ from .views import \
 from .views import \
     TeacherProfileViewSet  # LoginView,            # 假设的登录视图; LogoutView,           # 假设的登出视图; RegisterView          # 假设的注册视图; 假设你创建了 TeacherProfileViewSet
 
+
 # dj_rest_auth 提供了更全面的认证URL，如果使用它，可以这样包含：
 # urlpatterns = [
 #     path('auth/', include('dj_rest_auth.urls')),

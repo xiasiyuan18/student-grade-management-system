@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}用户登录{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="my-0 fw-normal text-center">系统登录</h4>
+                </div>
+                <div class="card-body">
+                    
+                    {# 如果登录失败，Django的LoginView会重新渲染模板并填充form.errors #}
+                    {% if form.errors %}
+                        <div class="alert alert-danger" role="alert">
+                            您输入的用户名或密码不正确，请重试。
+                        </div>
+                    {% endif %}
+
+                    {# form的action默认为当前页面的URL，这正是LoginView所期望的 #}
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label_tag }}</label>
+                            {# 手动渲染字段以添加Bootstrap的class #}
+                            <input type="text" name="username" id="{{ form.username.id_for_label }}" class="form-control" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label_tag }}</label>
+                            <input type="password" name="password" id="{{ form.password.id_for_label }}" class="form-control" required>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">登 录</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# 不需要任何自定义JavaScript，所以 extra_js 块是空的 #}
+{% block extra_js %}
+{% endblock %}

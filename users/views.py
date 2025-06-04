@@ -1,5 +1,6 @@
 from django.contrib.auth import (  # update_session_auth_hash 可能用不到（JWT场景）
     get_user_model, update_session_auth_hash)
+from django.views.generic import TemplateView
 from rest_framework import permissions, status, viewsets  # status 需要导入
 from rest_framework.decorators import action  # 如果 ViewSet 中有自定义 action
 from rest_framework.response import Response  # Response 需要导入
@@ -27,9 +28,7 @@ from .serializers import (CustomUserSerializer, StudentProfileSerializer,
 
 from .models import CustomUser # get_user_model() 已经获取了
 
-
 CustomUser = get_user_model()
-
 
 # --- JWT Token生成辅助函数 (可以放在 utils.py) ---
 def get_tokens_for_user(user):
@@ -357,8 +356,6 @@ class TeacherProfileViewSet(viewsets.ModelViewSet):
 
 
 
-from rest_framework_simplejwt.tokens import RefreshToken
-
 from .models import CustomUser  # 导入您的 CustomUser 模型
 
 
@@ -380,3 +377,15 @@ def get_tokens_for_user(user):
         "refresh": str(refresh),
         "access": str(refresh.access_token),
     }
+
+class UserLoginTemplateView(TemplateView):
+    template_name = "login.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['next'] = self.request.GET.get('next', '') 
+        return context
+
+# 假设您还有一个首页视图，用于登录后跳转和base.html中的链接
+class HomePageView(TemplateView):
+    template_name = "home.html" # 假设在项目级的 templates/home.html

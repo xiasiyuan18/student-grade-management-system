@@ -12,7 +12,13 @@
             {% if user.is_authenticated %}
                 <div class="alert alert-light shadow-sm" role="alert">
                     <h4 class="alert-heading">欢迎回来, {{ user.first_name|default:user.username }}!</h4>
-                    <p>您当前的身份是：<strong>{{ user.get_role_display }}</strong>。</p>
+                    <p>您当前的身份是：<strong>
+                        {% if user.is_superuser %}
+                            超级管理员
+                        {% else %}
+                            {{ user.get_role_display }}
+                        {% endif %}
+                    </strong>。</p>
                     <hr>
                     <p class="mb-0">请从下方选择您要进行的操作。</p>
                 </div>

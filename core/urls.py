@@ -14,8 +14,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 frontend_app_urlpatterns = [
     path("users/", include("users.frontend_urls", namespace="users_frontend")),
     path("departments/", include("departments.frontend_urls", namespace="departments_frontend")), # 保留 departments
-    # path("courses/", include("courses.frontend_urls", namespace="courses_frontend")), # 暂时注释掉
-    # path("grades/", include("grades.frontend_urls", namespace="grades_frontend")),   # 暂时注释掉
+    path("courses/", include("courses.frontend_urls", namespace="courses_frontend")), # 暂时注释掉
+    path("grades/", include("grades.frontend_urls", namespace="grades_frontend")),   # 暂时注释掉
 ]
 
 urlpatterns = [

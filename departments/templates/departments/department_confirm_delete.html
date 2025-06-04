@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block title %}确认删除院系 - {{ object.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-danger shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h2 class="card-title mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i>确认删除操作</h2>
+                </div>
+                <div class="card-body">
+                    <p class="lead">您确定要删除院系 <strong>"{{ object.name }}"</strong> 吗？</p>
+                    <p class="text-muted">此操作一旦执行将无法撤销。</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'frontend:departments_frontend:department_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="bi bi-trash-fill"></i> 是的，确认删除
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

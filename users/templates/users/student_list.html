@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}学生列表{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between ...">
+    <h1 class="h2">学生管理</h1>
+    <a href="{% url 'users:student-create' %}" class="btn btn-sm btn-outline-secondary">添加新学生账户</a>
+</div>
+<div class="table-responsive">
+    <table class="table ...">
+        <thead>...</thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ student.user.username }}</td>
+                <td>{{ student.name }}</td>
+                <td>{{ student.student_id_num }}</td>
+                <td>{{ student.major.name|default:"-" }}</td>
+                <td>
+                    {# ✨ 关键修正：编辑按钮指向档案编辑页 #}
+                    <a href="{% url 'users:student-profile-update' student.user.pk %}" class="btn btn-primary btn-sm">编辑档案</a>
+                    <a href="{% url 'users:student-delete' student.user.pk %}" class="btn btn-danger btn-sm">删除账户</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

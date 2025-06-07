@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}确认删除{% endblock %}
+
+{% block content %}
+<h1 class="h2">确认删除</h1>
+<p>您确定要删除专业 "<strong>{{ object.name }}</strong>" 吗？此操作不可恢复。</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">确认删除</button>
+    <a href="{% url 'departments:major-list' %}" class="btn btn-secondary">取消</a>
+</form>
+{% endblock %}

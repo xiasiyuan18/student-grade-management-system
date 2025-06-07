@@ -1,82 +1,101 @@
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
+from django.shortcuts import get_object_or_404
 from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.messages.views import SuccessMessageMixin
+from django.contrib.auth import get_user_model
 
-# 从当前应用的 models.py 中导入模型 (使用正确的模型名称)
-from .models import Teacher, Student
+from .models import Teacher, Student 
+# ✨ 关键修正：从 .forms 文件中导入所有需要的表单类
+from .forms import TeacherForm, StudentForm, StudentProfileUpdateForm
 
-# ---- 通用权限控制 ----
-# 只有管理员才能访问的视图
+User = get_user_model()
+
 class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_superuser
 
-# ---- 教师管理视图 (管理员视角) ----
-
+# =============================================================================
+# 教师管理视图 (管理员视角)
+# =============================================================================
 class TeacherListView(AdminRequiredMixin, generic.ListView):
-    model = Teacher  # 修正: TeacherProfile -> Teacher
+    model = Teacher
     template_name = 'users/teacher_list.html'
     context_object_name = 'teachers'
+    queryset = Teacher.objects.select_related('user').order_by('-user__date_joined')
 
-class TeacherCreateView(AdminRequiredMixin, generic.CreateView):
-    model = Teacher  # 修正: TeacherProfile -> Teacher
+class TeacherCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.CreateView):
+    model = User
+    form_class = TeacherForm
     template_name = 'users/teacher_form.html'
-    fields = ['user', 'teacher_id_num', 'name', 'department'] # 根据 Teacher 模型字段调整
-    success_url = reverse_lazy('frontend:users_frontend:teacher_list')
+    success_url = reverse_lazy('users:teacher-list')
+    success_message = "教师 %(username)s 已成功创建！"
 
-class TeacherUpdateView(AdminRequiredMixin, generic.UpdateView):
-    model = Teacher  # 修正: TeacherProfile -> Teacher
+    def get_success_message(self, cleaned_data):
+        return self.success_message % {'username': self.object.username}
+
+class TeacherUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    model = User
+    form_class = TeacherForm
     template_name = 'users/teacher_form.html'
-    fields = ['teacher_id_num', 'name', 'department'] # user 是主键，通常在更新时不可编辑
-    success_url = reverse_lazy('frontend:users_frontend:teacher_list')
+    success_url = reverse_lazy('users:teacher-list')
+    success_message = "教师 %(username)s 的信息已成功更新！"
 
-class TeacherDeleteView(AdminRequiredMixin, generic.DeleteView):
-    model = Teacher  # 修正: TeacherProfile -> Teacher
+    def get_success_message(self, cleaned_data):
+        return self.success_message % {'username': self.object.username}
+
+class TeacherDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
+    model = User
     template_name = 'users/teacher_confirm_delete.html'
-    success_url = reverse_lazy('frontend:users_frontend:teacher_list')
+    success_url = reverse_lazy('users:teacher-list')
+    success_message = "教师已成功删除。"
 
 
-# ---- 学生管理视图 (管理员视角) ----
-
+# =============================================================================
+# 学生管理视图 (管理员视角)
+# =============================================================================
 class StudentListView(AdminRequiredMixin, generic.ListView):
-    model = Student  # 修正: StudentProfile -> Student
+    model = Student
     template_name = 'users/student_list.html'
     context_object_name = 'students'
+    queryset = Student.objects.select_related('user', 'major', 'department').order_by('-user__date_joined')
 
-class StudentCreateView(AdminRequiredMixin, generic.CreateView):
-    model = Student  # 修正: StudentProfile -> Student
+class StudentCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.FormView):
+    form_class = StudentForm # 现在可以正确找到 StudentForm
     template_name = 'users/student_form.html'
-    fields = ['user', 'student_id_num', 'name', 'id_card', 'gender', 'birth_date', 'phone', 'dormitory', 'home_address', 'grade_year', 'major', 'department', 'degree_level'] # 根据 Student 模型字段调整
-    success_url = reverse_lazy('frontend:users_frontend:student_list')
+    success_url = reverse_lazy('users:student-list')
+    success_message = "学生 %(username)s 已成功创建！"
 
-class StudentUpdateView(AdminRequiredMixin, generic.UpdateView):
-    model = Student  # 修正: StudentProfile -> Student
-    template_name = 'users/student_form.html'
-    fields = ['student_id_num', 'name', 'id_card', 'gender', 'birth_date', 'phone', 'dormitory', 'home_address', 'grade_year', 'major', 'department', 'degree_level']
-    success_url = reverse_lazy('frontend:users_frontend:student_list')
+    def form_valid(self, form):
+        form.save()
+        return super().form_valid(form)
 
-class StudentDeleteView(AdminRequiredMixin, generic.DeleteView):
-    model = Student  # 修正: StudentProfile -> Student
+    def get_success_message(self, cleaned_data):
+        return self.success_message % {'username': cleaned_data['username']}
+
+class StudentUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    # 这个视图可能需要进一步完善，但目前不会引起启动错误
+    model = User 
+    fields = ['username', 'email']
+    template_name = 'users/user_form_simple.html'
+    success_url = reverse_lazy('users:student-list')
+    success_message = "学生账户信息已成功更新！"
+
+class StudentProfileUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    # 这个视图也可能需要进一步完善，但目前不会引起启动错误
+    model = Student
+    form_class = StudentProfileUpdateForm
+    template_name = 'users/student_profile_form.html'
+    success_url = reverse_lazy('users:student-list')
+    success_message = "学生档案已成功保存！"
+
+    def get_object(self, queryset=None):
+        user = get_object_or_404(User, pk=self.kwargs['pk'], role=User.Role.STUDENT)
+        student_profile, created = Student.objects.get_or_create(user=user)
+        return student_profile
+
+class StudentDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
+    model = User
     template_name = 'users/student_confirm_delete.html'
-    success_url = reverse_lazy('frontend:users_frontend:student_list')
-
-
-# ---- 个人信息修改视图 ----
-
-class TeacherProfileSelfUpdateView(LoginRequiredMixin, generic.UpdateView):
-    model = Teacher  # 修正: TeacherProfile -> Teacher
-    template_name = 'users/profile_form.html'
-    fields = ['name'] # 假设教师只能修改部分信息，可根据需求调整
-    success_url = reverse_lazy('home')
-
-    def get_object(self, queryset=None):
-        return Teacher.objects.get(user=self.request.user)
-
-class StudentProfileSelfUpdateView(LoginRequiredMixin, generic.UpdateView):
-    model = Student  # 修正: StudentProfile -> Student
-    template_name = 'users/profile_form.html'
-    fields = ['phone', 'dormitory', 'home_address'] # 假设学生只能修改部分信息
-    success_url = reverse_lazy('home')
-
-    def get_object(self, queryset=None):
-        return Student.objects.get(user=self.request.user)
+    success_url = reverse_lazy('users:student-list')
+    success_message = "学生已成功删除。"

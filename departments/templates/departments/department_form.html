@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
-{% load static %} {% block title %}
+{% load static %} 
+{% block title %}
     {% if form.instance.pk %}
         编辑院系 - {{ form.instance.name }}
     {% else %}
         添加新院系
     {% endif %}
-    - 学生成绩管理系统
+     - 学生成绩管理系统
 {% endblock %}
 
 {% block content %}
@@ -36,18 +37,21 @@
 
                         {% for field in form %}
                             <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}
+                                <label for="{{ field.id_for_label }}" class="form-label">
+                                    {{ field.label }}
                                     {% if field.field.required %}
                                         <span class="text-danger">*</span>
                                     {% endif %}
                                 </label>
-                                {{ field }} {% if field.help_text %}
+                                {{ field }}
+                                {% if field.help_text %}
                                     <div id="{{ field.id_for_label }}_help" class="form-text text-muted small">
                                         {{ field.help_text }}
                                     </div>
                                 {% endif %}
                                 {% if field.errors %}
-                                    <div class="invalid-feedback d-block"> {% for error in field.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in field.errors %}
                                             {{ error }}
                                         {% endfor %}
                                     </div>
@@ -57,7 +61,8 @@
 
                         <hr>
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a href="{% url 'frontend:departments_frontend:department_list' %}" class="btn btn-outline-secondary">
+                            {# ✨ 关键修正：移除 'frontend:departments_frontend:' 前缀 #}
+                            <a href="{% url 'departments:department-list' %}" class="btn btn-outline-secondary">
                                 <i class="bi bi-x-circle"></i> 取消
                             </a>
                             <button type="submit" class="btn btn-primary">

@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}编辑教师{% else %}添加教师{% endif %}{% endblock %}
+{% block content %}
+<h1 class="h2">{% if object %}编辑教师：{{ object.username }}{% else %}添加新教师{% endif %}</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="{% url 'users:teacher-list' %}" class="btn btn-secondary">取消</a>
+</form>
+{% endblock %}

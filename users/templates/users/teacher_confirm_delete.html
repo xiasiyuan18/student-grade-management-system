@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}确认删除{% endblock %}
+{% block content %}
+<h1 class="h2">确认删除</h1>
+<p>你确定要删除教师 "<strong>{{ object.username }}</strong>" 吗？此操作不可恢复。</p>
+<form method="post">
+    {% csrf_token %}
+    <button type="submit" class="btn btn-danger">确认删除</button>
+    <a href="{% url 'users:teacher-list' %}" class="btn btn-secondary">取消</a>
+</form>
+{% endblock %}

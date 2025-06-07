@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}编辑专业{% else %}添加新专业{% endif %}{% endblock %}
+
+{% block content %}
+<h1 class="h2">{% if object %}编辑专业：{{ object.name }}{% else %}添加新专业{% endif %}</h1>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">保存</button>
+    <a href="{% url 'departments:major-list' %}" class="btn btn-secondary">取消</a>
+</form>
+{% endblock %}

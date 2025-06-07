@@ -1,25 +1,13 @@
-# grades/urls.py
-from django.urls import include, path
-from rest_framework.routers import DefaultRouter
+# student_grade_management_system/grades/urls.py
 
-from .views import (StudentGradeForTeachingAssignmentView,
-                    TeachingAssignmentGradesListView)
+from django.urls import path
+from .views import GradeEntryView # 导入用于模板渲染的视图
 
-# 如果有其他 Grade 的 ModelViewSet 操作 (如管理员的 CRUD)，可以放在这里
-# router = DefaultRouter()
-# router.register(r'grades-admin', GradeAdminViewSet, basename='grade-admin') # 假设有这个ViewSet
+app_name = 'grades' # 明确定义应用命名空间，这是解决 NoReverseMatch 的关键！
 
 urlpatterns = [
-    # path('', include(router.urls)), # 如果使用了上面的 router
-    # 教师管理特定授课安排下的成绩
-    path(
-        "teaching-assignments/<int:teaching_assignment_id>/grades/",
-        TeachingAssignmentGradesListView.as_view(),
-        name="teaching-assignment-grades-list",
-    ),
-    path(
-        "teaching-assignments/<int:teaching_assignment_id>/grades/students/<int:student_id>/",
-        StudentGradeForTeachingAssignmentView.as_view(),
-        name="student-grade-for-teaching-assignment-detail",
-    ),
+    # 教师录入/修改成绩的页面
+    path('entry/', GradeEntryView.as_view(), name='grade_entry'),
+    # 如果未来有学生查看成绩列表的模板页面，可以在这里添加：
+    # path('my-grades/', StudentGradesListView.as_view(), name='my_grades'),
 ]

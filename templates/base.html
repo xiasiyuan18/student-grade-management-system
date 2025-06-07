@@ -1,0 +1,102 @@
+{% load static %} {# 引入 static 文件加载标签 #}
+<!DOCTYPE html>
+<html lang="zh-hans"> {# 语言设置为简体中文 #}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}学生成绩管理系统{% endblock %}</title>
+    {# 引入 Bootstrap 5 CSS #}
+    <link href="{% static 'css/bootstrap.min.css' %}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary"> {# Bootstrap 导航栏 #}
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'home' %}">学生成绩管理系统</a> {# 网站标题，指向主页 #}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    {# 假设这里会添加后续的导航链接，例如： #}
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            {# 根据文档，这里是初步导航，指向后续将创建的核心模块列表页的占位链接 #}
+                            {# 如果有独立的仪表盘，可以改为 {% url 'dashboard' %} #}
+                            <a class="nav-link" href="{% url 'home' %}">仪表盘</a>
+                        </li>
+                        {# 示例：根据角色动态显示，后续会完善 #}
+                        {% if user.is_superuser or user.role == user.CustomUser.Role.ADMIN %} {# 检查管理员角色 #}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'courses:course_list' %}">课程管理</a> {# 示例：指向课程列表 #}
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">用户管理</a> {# 占位符 #}
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">院系/专业管理</a> {# 占位符 #}
+                            </li>
+                        {% endif %}
+
+                        {% if user.role == user.CustomUser.Role.TEACHER %} {# 检查教师角色 #}
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'grades:grade_entry' %}">成绩录入</a> {# 示例：指向成绩录入 #}
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">我的课程</a> {# 占位符 #}
+                            </li>
+                        {% endif %}
+
+                        {% if user.role == user.CustomUser.Role.STUDENT %} {# 检查学生角色 #}
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">我的成绩</a> {# 占位符 #}
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">我的信息</a> {# 占位符 #}
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item">
+                            <span class="nav-link text-white">欢迎, {{ user.username }}</span> {# 欢迎信息  #}
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-light" href="{% url 'users:logout' %}">登出</a> {# <-- 修改这里 #}
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-outline-light" href="{% url 'users:login' %}">登录</a> {# <-- 修改这里 #}
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        {# Django messages 框架，用于显示提示信息  #}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% block content %} {# 主要内容区域  #}
+        {% endblock %}
+    </div>
+
+    <footer class="footer mt-auto py-3 bg-light">
+        <div class="container text-center">
+            <span class="text-muted">© 2025 学生成绩管理系统. All rights reserved.</span>
+        </div>
+    </footer>
+
+    {# 引入 Bootstrap 5 JS (必须在</body>标签结束前引入) #}
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
+    {% block extra_js %}{% endblock %} {# 用于引入页面特定JS #}
+</body>
+</html>

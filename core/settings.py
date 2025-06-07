@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from datetime import timedelta # 用于设置 SIMPLE_JWT 的时间
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -61,7 +62,7 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / 'templates'], # <--- 修改: 添加项目级模板目录
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -114,21 +115,20 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 # <--- 添加: 指定自定义的用户模型 ---
-# 假设你的 Student 模型类名为 Student，且位于 'users' 应用的 models.py 文件中
-AUTH_USER_MODEL = "users.CustomUser"
+AUTH_USER_MODEL = "users.CustomUser" # <--- 确保指向你的CustomUser模型
 
+# --- 认证和重定向URL设置 --- # <--- 添加/修改
+LOGIN_URL = 'users:login' # 登录页面的URL名称，带命名空间
+LOGIN_REDIRECT_URL = 'home' # 登录成功后重定向的URL名称
+LOGOUT_REDIRECT_URL = 'users:login' # 登出成功后重定向到登录页
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-# LANGUAGE_CODE = "en-us" # 默认为英文
 LANGUAGE_CODE = "zh-hans"  # <--- 可选修改: 设置为简体中文
-
-# TIME_ZONE = "UTC" # 默认为UTC
 TIME_ZONE = "Asia/Shanghai"  # <--- 可选修改: 设置为中国上海时区
 
 USE_I18N = True
-
 USE_TZ = True  # 推荐保持为 True，Django 会在内部处理时区转换
 
 
@@ -136,6 +136,11 @@ USE_TZ = True  # 推荐保持为 True，Django 会在内部处理时区转换
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = "static/"
+
+# 添加这一行，指定项目级别的静态文件目录
+STATICFILES_DIRS = [
+    BASE_DIR / "static",
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -154,7 +159,6 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
 }
 
-from datetime import timedelta  # 用于设置时间
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # 访问令牌的有效期，例如60分钟
@@ -171,13 +175,8 @@ SIMPLE_JWT = {
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",  # 包含Token的HTTP头名称
     # 非常重要: 将这些字段与您的 CustomUser 模型对应起来
     "USER_ID_FIELD": "pk",  # CustomUser的主键字段名 (AbstractUser默认是 'id'，其值为pk)
-    # 由于您在 CustomUser 中将 user_id 设为了主键，这里也可以是 "user_id"
-    # "pk" 是一个通用的指向主键的方式
     "USER_ID_CLAIM": "user_id",  # JWT Payload 中代表用户ID的声明(claim)的名称
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",  # JWT Payload 中代表token类型的声明的名称
     "JTI_CLAIM": "jti",  # JWT ID, 用于唯一标识token，有助于防止重放攻击和实现黑名单
-    # "SLIDING_TOKEN_REFRESH_EXP_CLAIM": "refresh_exp",
-    # "SLIDING_TOKEN_LIFETIME": timedelta(minutes=5),
-    # "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }

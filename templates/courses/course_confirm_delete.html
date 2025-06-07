@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}删除课程{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card border-danger shadow-sm mt-5">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">确认删除</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">
+                    您确定要删除课程 <strong>"{{ course.course_name }}" ({{ course.course_id }})</strong> 吗？
+                </p>
+                <p class="card-text text-danger">
+                    此操作不可逆，所有与该课程相关的数据（如成绩）可能受到影响！
+                </p>
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg mt-3">确认删除</button>
+                        <a href="{% url 'courses:course_list' %}" class="btn btn-secondary btn-lg">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

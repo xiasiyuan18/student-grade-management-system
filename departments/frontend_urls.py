@@ -1,10 +1,12 @@
+# departments/frontend_urls.py (连字符 '-' 统一版)
+
 from django.urls import path
 from . import frontend_views
 
-# 关键: 前端页面的应用名是 'departments'
 app_name = 'departments'
 
 urlpatterns = [
+    # ✨ 关键修正 #1：确保所有 name 都使用连字符 '-' ✨
     path('departments/', frontend_views.DepartmentListView.as_view(), name='department-list'),
     path('departments/create/', frontend_views.DepartmentCreateView.as_view(), name='department-create'),
     path('departments/<int:pk>/update/', frontend_views.DepartmentUpdateView.as_view(), name='department-update'),

@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{# 动态设置页面标题：如果是编辑，显示“编辑教师”，否则显示“新增教师” #}
+{% block title %}
+    {% if form.instance.pk %}编辑教师{% else %}新增教师{% endif %} - 学生成绩管理系统
+{% endblock title %}
+
+
+{% block content %}
+<div class="container mt-4">
+    
+    {# 动态设置页面大标题 #}
+    {% if form.instance.pk %}
+        <h2>编辑教师：{{ form.instance.username }}</h2>
+    {% else %}
+        <h2>新增教师</h2>
+    {% endif %}
+
+    <div class="card">
+        <div class="card-body">
+            {# 表单必须使用 POST 方法提交数据 #}
+            <form method="post">
+                {# Django 的安全令牌，所有POST表单都必须包含 #}
+                {% csrf_token %}
+
+                {# 如果表单有不针对任何特定字段的全局错误，在这里显示 #}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {# 循环渲染表单中的每一个字段 #}
+                {% for field in form %}
+                <div class="mb-3">
+                    {# 显示字段的标签 #}
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                    
+                    {# 渲染字段的输入框（如 <input>, <select> 等） #}
+                    {{ field }}
+                    
+                    {# 如果字段有帮助提示文本，在这里显示 #}
+                    {% if field.help_text %}
+                        <small class="form-text text-muted">{{ field.help_text|safe }}</small>
+                    {% endif %}
+
+                    {# 如果该字段验证失败，在这里显示它的错误信息 #}
+                    {% for error in field.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ error }}
+                        </div>
+                    {% endfor %}
+                </div>
+                {% endfor %}
+                
+                {# 提交按钮 #}
+                <button type="submit" class="btn btn-primary">保存</button>
+
+                {# “取消”链接，点击后会返回教师列表页面 #}
+                {# 注意：这里的 'teacher-list' 必须和你的 urls.py 中的 name='teacher-list' 完全对应 #}
+                <a href="{% url 'users:teacher-list' %}" class="btn btn-secondary">取消</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock content %}

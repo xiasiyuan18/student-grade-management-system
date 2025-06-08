@@ -1,0 +1,80 @@
+{# 继承项目的 'base.html' 基础模板，这样可以重用导航栏和页脚 #}
+{% extends 'base.html' %}
+
+{# 加载Django的静态文件标签库，用于处理CSS、JS等文件路径 #}
+{% load static %}
+
+{# 定义浏览器标签页的标题 #}
+{% block title %}
+教师管理 - 学生成绩管理系统
+{% endblock title %}
+
+
+{# 页面的主要内容区域 #}
+{% block content %}
+<div class="container mt-4">
+
+    {# --- 开始调试代码 --- #}
+    {# 这部分代码是为了帮助你诊断为什么“新增教师”按钮不显示。#}
+    {# 它会明确告诉你当前登录的用户是谁，以及他是不是超级管理员。#}
+    <div class="alert alert-warning">
+        <p><strong>调试信息（请用超级管理员账号登录后查看这里）：</strong></p>
+        <ul>
+            <li>当前登录用户: <strong>{{ user.username }}</strong></li>
+            <li>是否是超级用户 (is_superuser): <strong>{{ user.is_superuser }}</strong></li>
+        </ul>
+    </div>
+    {# --- 结束调试代码 --- #}
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>教师列表</h2>
+        
+        {# 权限控制：只有当登录用户是超级管理员时，才会显示这个“新增教师”按钮 #}
+        {% if user.is_superuser %}
+            {# 注意：这里的 'users:teacher-create' 必须和你的 urls.py 中的 name='teacher-create' 完全对应 #}
+            <a href="{% url 'users:teacher-create' %}" class="btn btn-primary">新增教师</a>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {# 使用 Bootstrap 的表格样式来展示数据 #}
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">ID</th>
+                        <th scope="col">用户名</th>
+                        <th scope="col">邮箱</th>
+                        <th scope="col">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {# 循环后端视图传递过来的教师列表（变量名为 teachers） #}
+                    {% for teacher in teachers %}
+                    <tr>
+                        <th scope="row">{{ teacher.id }}</th>
+                        <td>{{ teacher.username }}</td>
+                        <td>{{ teacher.email|default:"未提供" }}</td>
+                        <td>
+                            {# 权限控制：编辑和删除按钮也只对超级管理员可见 #}
+                            {% if user.is_superuser %}
+                                {# 'teacher-update' 和 'teacher-delete' 同样需要和 urls.py 匹配 #}
+                                <a href="{% url 'users:teacher-update' teacher.pk %}" class="btn btn-sm btn-outline-secondary">编辑</a>
+                                <a href="{% url 'users:teacher-delete' teacher.pk %}" class="btn btn-sm btn-outline-danger">删除</a>
+                            {% else %}
+                                <span class="text-muted">（无操作权限）</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {# 如果列表为空，则显示提示信息 #}
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center">当前没有教师信息。</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock content %}

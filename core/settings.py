@@ -84,7 +84,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "student-grade-management-system",  # <--- 修改: 你的数据库名称
         "USER": "root",  # <--- 修改: 你的 MySQL 用户名
-        "PASSWORD": "123456dp",  # <--- 修改: 你的 MySQL 密码
+        "PASSWORD": "wzk23@Mysql",  # <--- 修改: 你的 MySQL 密码
         "HOST": "localhost",  # <--- 修改: (通常是 'localhost' 或数据库服务器 IP)
         "PORT": "3306",  # <--- 修改: (MySQL 默认端口)
         "OPTIONS": {
@@ -135,7 +135,7 @@ USE_TZ = True  # 推荐保持为 True，Django 会在内部处理时区转换
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
@@ -185,3 +185,4 @@ SIMPLE_JWT = {
     # "SLIDING_TOKEN_REFRESH_LIFETIME": timedelta(days=1),
 }
 LOGIN_REDIRECT_URL = '/'
+LOGIN_URL = 'users:login' 

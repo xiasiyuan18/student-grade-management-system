@@ -1,10 +1,12 @@
 from django.contrib import admin
 from django.urls import path, include
 from . import views as core_frontend_views
+from django.views.generic.base import RedirectView
 
+login_url = RedirectView.as_view(pattern_name='users:login', permanent=False)
 urlpatterns = [
     # 首页
-    path('', core_frontend_views.home_view, name='home'),
+    path('', login_url, name='home'), 
     
     # Django 自带的后台管理
     path('admin/', admin.site.urls),

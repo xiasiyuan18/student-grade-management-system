@@ -1,7 +1,14 @@
 from django.urls import path
 from . import frontend_views
 from django.contrib.auth import views as auth_views
-
+from .frontend_views import (
+    TeacherListView, 
+    TeacherCreateView, 
+    TeacherUpdateView, 
+    TeacherDeleteView,
+    TeacherProfileUpdateView,
+    StudentProfileUpdateView,
+)
 app_name = 'users'
 
 urlpatterns = [
@@ -24,4 +31,6 @@ urlpatterns = [
     
     # 学生删除的URL也需要pk
     path('students/<int:pk>/delete/', frontend_views.StudentDeleteView.as_view(), name='student-delete'),
+    path('profile/teacher/', TeacherProfileUpdateView.as_view(), name='teacher-profile-update'),
+    path('profile/student/', StudentProfileUpdateView.as_view(), name='student-profile-update'),
 ]

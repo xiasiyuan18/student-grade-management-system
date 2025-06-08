@@ -9,86 +9,151 @@
     <link href="{% static 'css/dashboard.css' %}" rel="stylesheet">
 </head>
 <body>
+{# templates/base.html -> header部分 #}
 
 <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
-    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="{% url 'home' %}">学生成绩管理系统</a>
-    <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
+    <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3 fs-6" href="{% if user.is_authenticated %}{% url 'home' %}{% else %}#{% endif %}">学生成绩管理系统</a>
+
+    {% if user.is_authenticated %}
     <div class="navbar-nav">
-        <div class="nav-item text-nowrap">
-            {% if user.is_authenticated %}
-                {# ✨ 使用简单的Django常规登出URL #}
-                <a class="nav-link px-3" href="{% url 'users:logout' %}">登出 ({{ user.username }})</a>
-            {% else %}
-                <a class="nav-link px-3" href="{% url 'users:login' %}">登录</a>
-            {% endif %}
+        <div class="nav-item text-nowrap d-flex align-items-center">
+            <span class="nav-link px-3">欢迎, {{ user.username }}</span>
+
+            {# ✨ 核心修正：将<a>链接替换为一个表单 #}
+            <form class="d-inline" action="{% url 'users:logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="nav-link px-3 btn btn-link text-white" style="text-decoration: none;">登出</button>
+            </form>
         </div>
     </div>
+    {% endif %}
 </header>
 
-<div class="container-fluid">
-    <div class="row">
-        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
-            <div class="position-sticky pt-3 sidebar-sticky">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="{% url 'home' %}">
-                            <span data-feather="home" class="align-text-bottom"></span>
-                            主页
-                        </a>
-                    </li>
-                    {% if user.is_superuser %}
-                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
-                        <span>管理员菜单</span>
-                    </h6>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'users:student-list' %}">
-                            <span data-feather="users" class="align-text-bottom"></span>
-                            学生管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'users:teacher-list' %}">
-                            <span data-feather="users" class="align-text-bottom"></span>
-                            教师管理
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'departments:department-list' %}">
-                            <span data-feather="briefcase" class="align-text-bottom"></span>
-                            院系专业管理
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </div>
-        </nav>
+{# ✨ 核心修正：使用 if/else 标签来区分两种完全不同的页面布局 #}
+{% if user.is_authenticated %}
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-            
-            {% block content %}
-            {% endblock %}
-        </main>
+    {# ====================================================================== #}
+    {#   情况一：用户已登录，显示完整的仪表盘界面（左侧栏 + 右侧内容）   #}
+    {# ====================================================================== #}
+    <div class="container-fluid">
+        <div class="row">
+            {# --- 左侧操作栏 --- #}
+            <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3 sidebar-sticky">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="{% url 'home' %}">
+                                <span data-feather="home" class="align-text-bottom"></span>
+                                主页
+                            </a>
+                        </li>
+                        
+                        {# --- 管理员菜单 --- #}
+                        {% if user.is_superuser %}
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                            <span>管理员菜单</span>
+                        </h6>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:student-list' %}">
+                                <span data-feather="users" class="align-text-bottom"></span>
+                                学生管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:teacher-list' %}">
+                                <span data-feather="users" class="align-text-bottom"></span>
+                                教师管理
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'departments:department-list' %}">
+                                <span data-feather="briefcase" class="align-text-bottom"></span>
+                                院系专业管理
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {# --- 教师菜单 --- #}
+                        {% if user.role == 'TEACHER' and not user.is_superuser %}
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                            <span>教师菜单</span>
+                        </h6>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <span data-feather="edit" class="align-text-bottom"></span>
+                                成绩录入
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            {# ✨ 教师链接修正：指向我们为教师创建的个人中心URL #}
+                            <a class="nav-link" href="{% url 'users:teacher-profile-update' %}">
+                                <span data-feather="user" class="align-text-bottom"></span>
+                                修改个人信息
+                            </a>
+                        </li>
+                        {% endif %}
+
+                        {# --- 学生菜单 --- #}
+                        {% if user.role == 'STUDENT' %}
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                            <span>学生菜单</span>
+                        </h6>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <span data-feather="book-open" class="align-text-bottom"></span>
+                                查看我的成绩
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:student-profile-update' %}">
+                                <span data-feather="user" class="align-text-bottom"></span>
+                                修改个人信息
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </nav>
+
+            {# --- 右侧主内容区 --- #}
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show mt-3" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+                
+                {% block content %}
+                {# 登录后，其他页面的内容会填充到这里 #}
+                {% endblock %}
+            </main>
+        </div>
     </div>
-</div>
+
+{% else %}
+
+    {# ====================================================================== #}
+    {#   情况二：用户未登录，只显示一个居中的内容块（用于放登录表单）  #}
+    {# ====================================================================== #}
+    <div class="container">
+        <div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+            <div class="col-md-6 col-lg-4">
+                {# 未登录时，登录页面的内容会填充到这里 #}
+                {% block content_guest %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+
+{% endif %}
 
 <script src="{% static 'js/bootstrap.bundle.min.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js"></script>
 <script>
     feather.replace()
-    
-    // ✨ 关键修正：将复杂的、依赖JWT的JS登出逻辑暂时注释掉。
-    // 我们优先保证网站能用最简单的会话认证跑起来。
-    // JWT的登出逻辑比较复杂，可以在后续专门调试。
 </script>
 </body>
 </html>

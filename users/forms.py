@@ -19,6 +19,15 @@ class TeacherForm(forms.ModelForm):
             'last_name': '姓',
         }
 
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            # 注意：密码字段的 widget 在上面单独定义了，这里的不生效，但写上保持统一性
+            'password': forms.PasswordInput(attrs={'class': 'form-control'}),
+        }
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
@@ -77,9 +86,42 @@ class StudentForm(forms.Form):
         return user
 
 
-# --- 学生个人信息更新表单 ---
+# 学生个人档案更新表单
 class StudentProfileUpdateForm(forms.ModelForm):
     class Meta:
-        model = Student
-        fields = ['phone', 'dormitory', 'home_address']
-        labels = {'phone': '电话号码', 'dormitory': '宿舍号', 'home_address': '家庭住址'}
+        model = Student # 这个表单的模型是 Student
+        
+        # ✨ 核心修正：只包含 Student 模型中实际存在且适合学生修改的字段
+        fields = ('phone', 'dormitory', 'home_address') 
+        
+        # 为表单字段设置更友好的中文标签
+        labels = {
+            'phone': '我的联系电话',
+            'dormitory': '我的宿舍信息',
+            'home_address': '我的家庭地址',
+        }
+
+        # 为输入框添加 Bootstrap 样式，并为地址使用大一点的文本框
+        widgets = {
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'dormitory': forms.TextInput(attrs={'class': 'form-control'}),
+            'home_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+
+# ✨ 新增：专为教师修改个人信息设计的表单
+class TeacherProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = User
+        # 重要的安全措施：只允许教师修改这几个字段
+        fields = ('email', 'first_name', 'last_name')
+        labels = {
+            'email': '邮箱地址',
+            'first_name': '名',
+            'last_name': '姓',
+        }
+        widgets = {
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+        }

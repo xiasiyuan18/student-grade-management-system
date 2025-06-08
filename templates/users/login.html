@@ -1,51 +1,48 @@
+{# users/templates/users/login.html #}
+
 {% extends "base.html" %}
-{% load static %}
 
-{% block title %}用户登录{% endblock %}
+{# 使用我们为未登录用户定义的 content_guest 块 #}
+{% block content_guest %}
 
-{% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h4 class="my-0 fw-normal text-center">系统登录</h4>
+    <div class="card shadow-sm">
+        <div class="card-body p-4">
+            <h4 class="card-title text-center mb-4">系统登录</h4>
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    您输入的用户名或密码不正确，请重试。
                 </div>
-                <div class="card-body">
-                    
-                    {# 如果登录失败，Django的LoginView会重新渲染模板并填充form.errors #}
-                    {% if form.errors %}
-                        <div class="alert alert-danger" role="alert">
-                            您输入的用户名或密码不正确，请重试。
-                        </div>
-                    {% endif %}
+            {% endif %}
 
-                    {# form的action默认为当前页面的URL，这正是LoginView所期望的 #}
-                    <form method="post">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.username.id_for_label }}" class="form-label">{{ form.username.label_tag }}</label>
-                            {# 手动渲染字段以添加Bootstrap的class #}
-                            <input type="text" name="username" id="{{ form.username.id_for_label }}" class="form-control" required>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.password.id_for_label }}" class="form-label">{{ form.password.label_tag }}</label>
-                            <input type="password" name="password" id="{{ form.password.id_for_label }}" class="form-control" required>
-                        </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg">登 录</button>
-                        </div>
-                    </form>
+            <form method="post">
+                {% csrf_token %}
+                
+                {# 直接使用 as_p 会为每个字段生成一个 <p> 标签包裹的表单元素 #}
+                {# 为了应用样式，我们应该去修改Django自带的AuthenticationForm，但这比较复杂 #}
+                {# 我们先用一个简单有效的方式 #}
+
+                <div class="mb-3">
+                    <label for="{{ form.username.id_for_label }}" class="form-label">用户名</label>
+                    <input type="text" name="username" class="form-control" required id="{{ form.username.id_for_label }}">
+                    {% for error in form.username.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
                 </div>
-            </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.password.id_for_label }}" class="form-label">密码</label>
+                    <input type="password" name="password" class="form-control" required id="{{ form.password.id_for_label }}">
+                    {% for error in form.password.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">登 录</button>
+                </div>
+            </form>
         </div>
     </div>
-</div>
-{% endblock %}
 
-{# 不需要任何自定义JavaScript，所以 extra_js 块是空的 #}
-{% block extra_js %}
-{% endblock %}
+{% endblock content_guest %}

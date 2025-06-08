@@ -4,10 +4,9 @@ from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth import get_user_model
-
+from .forms import TeacherForm, StudentForm, StudentProfileUpdateForm, TeacherProfileUpdateForm 
 from .models import Teacher, Student 
 # ✨ 关键修正：从 .forms 文件中导入所有需要的表单类
-from .forms import TeacherForm, StudentForm, StudentProfileUpdateForm
 
 User = get_user_model()
 
@@ -122,21 +121,57 @@ class StudentUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateV
     success_url = reverse_lazy('users:student-list')
     success_message = "学生账户信息已成功更新！"
 
-class StudentProfileUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
-    # 这个视图也可能需要进一步完善，但目前不会引起启动错误
+# =============================================================================
+# 学生个人中心 (学生视角)
+# =============================================================================
+class StudentProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, generic.UpdateView):
+    # ✨ 注意：模型是 Student
     model = Student
     form_class = StudentProfileUpdateForm
-    template_name = 'users/student_profile_form.html'
-    success_url = reverse_lazy('users:student-list')
-    success_message = "学生档案已成功保存！"
+    template_name = 'users/student_profile_form.html' # ✨ 使用一个学生专用的模板
+    success_url = reverse_lazy('home')
+    success_message = "你的个人档案已成功更新！"
 
     def get_object(self, queryset=None):
-        user = get_object_or_404(User, pk=self.kwargs['pk'], role=User.Role.STUDENT)
-        student_profile, created = Student.objects.get_or_create(user=user)
-        return student_profile
+        """
+        这个方法会返回当前登录用户所关联的那个 Student 档案对象。
+        """
+        # 尝试获取当前登录用户的学生档案，如果不存在则会返回404错误
+        return get_object_or_404(Student, user=self.request.user)
+
+    def test_func(self):
+        """
+        确保只有角色为'STUDENT'的用户才能访问。
+        """
+        return self.request.user.role == User.Role.STUDENT
 
 class StudentDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
     model = User
     template_name = 'users/student_confirm_delete.html'
     success_url = reverse_lazy('users:student-list')
     success_message = "学生已成功删除。"
+
+# =============================================================================
+# 教师个人中心 (教师视角)
+# =============================================================================
+class TeacherProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, generic.UpdateView):
+    # 我们要更新的是 User 模型
+    model = User
+    # 使用我们专门创建的个人信息表单
+    form_class = TeacherProfileUpdateForm
+    template_name = 'users/user_profile_form.html'  # 我们将创建一个通用的个人信息模板
+    success_url = reverse_lazy('home') # 成功后跳转回主页
+    success_message = "您的个人信息已成功更新！"
+
+    def get_object(self, queryset=None):
+        """
+        这个关键方法会直接返回当前登录的用户对象，
+        确保教师只能修改自己的信息。
+        """
+        return self.request.user
+
+    def test_func(self):
+        """
+        这个测试函数确保只有角色为'TEACHER'的用户才能访问此页面。
+        """
+        return self.request.user.role == User.Role.TEACHER

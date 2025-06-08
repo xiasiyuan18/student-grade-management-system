@@ -84,7 +84,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "student-grade-management-system",  # <--- 修改: 你的数据库名称
         "USER": "root",  # <--- 修改: 你的 MySQL 用户名
-        "PASSWORD": "xiasiyuan18",  # <--- 修改: 你的 MySQL 密码
+        "PASSWORD": "wzk23@Mysql",  # <--- 修改: 你的 MySQL 密码
         "HOST": "localhost",  # <--- 修改: (通常是 'localhost' 或数据库服务器 IP)
         "PORT": "3306",  # <--- 修改: (MySQL 默认端口)
         "OPTIONS": {
@@ -186,3 +186,4 @@ SIMPLE_JWT = {
 }
 LOGIN_REDIRECT_URL = '/'
 LOGIN_URL = 'users:login' 
+LOGOUT_REDIRECT_URL = 'users:login'

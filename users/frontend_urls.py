@@ -22,12 +22,8 @@ urlpatterns = [
     # --- 学生管理 (管理员视角) ---
     path('students/', frontend_views.StudentListView.as_view(), name='student-list'),
     path('students/create/', frontend_views.StudentCreateView.as_view(), name='student-create'),
-    
-    # ✨ 关键修正 #2：区分两个不同的“学生档案更新”URL名称
-    # 这个是管理员用来编辑特定学生的档案
-    path('students/profile/<int:pk>/update/', frontend_views.StudentProfileUpdateView.as_view(), name='admin-student-profile-update'),
-    
-    # 学生删除
+    path('students/<int:pk>/update/', frontend_views.StudentUpdateView.as_view(), name='student-update'),
+    path('students/<int:pk>/profile-edit/', frontend_views.StudentProfileEditView.as_view(), name='student-profile-edit'),
     path('students/<int:pk>/delete/', frontend_views.StudentDeleteView.as_view(), name='student-delete'),
     
     # --- 个人中心 (用户自己视角) ---

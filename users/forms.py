@@ -3,8 +3,8 @@
 from django import forms
 from django.db import transaction
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import AuthenticationForm # 解决方案：保留队友的 import
-from .models import Student
+from django.contrib.auth.forms import AuthenticationForm
+from .models import Student, Teacher  # 确保导入了 Teacher 模型
 from departments.models import Major, Department
 
 User = get_user_model()
@@ -27,6 +27,25 @@ class CustomAuthenticationForm(AuthenticationForm):
 # --- 教师账户创建表单 ---
 class TeacherForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, label="初始密码")
+    
+    # 添加教师档案相关字段
+    teacher_id_num = forms.CharField(
+        label="教师工号", 
+        max_length=50, 
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    name = forms.CharField(
+        label="教师姓名", 
+        max_length=100, 
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    department = forms.ModelChoiceField(
+        queryset=Department.objects.all(), 
+        label="所属院系", 
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        empty_label="请选择院系"
+    )
+    
     class Meta:
         model = User
         fields = ('username', 'password', 'email', 'first_name', 'last_name')
@@ -36,19 +55,24 @@ class TeacherForm(forms.ModelForm):
             'first_name': '名',
             'last_name': '姓',
         }
-
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'password': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
 
+    def clean_teacher_id_num(self):
+        teacher_id_num = self.cleaned_data.get('teacher_id_num')
+        if teacher_id_num and Teacher.objects.filter(teacher_id_num=teacher_id_num).exists():
+            raise forms.ValidationError("此工号已被占用，请选择其他工号。")
+        return teacher_id_num
+
     def save(self, commit=True):
+        """只保存用户，教师档案由视图处理"""
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
-        user.role = User.Role.TEACHER # 设定角色为教师
+        user.role = User.Role.TEACHER
         if commit:
             user.save()
         return user
@@ -128,4 +152,66 @@ class TeacherProfileUpdateForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
+class StudentUpdateForm(forms.ModelForm):
+    """管理员更新学生基本账户信息的表单"""
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'is_active']
+        labels = {
+            'username': '登录用户名',
+            'email': '邮箱地址',
+            'first_name': '名',
+            'last_name': '姓',
+            'is_active': '账户激活状态',
+        }
+        widgets = {
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_active': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class StudentProfileEditForm(forms.ModelForm):
+    """管理员编辑学生档案信息的表单"""
+    class Meta:
+        model = Student
+        fields = [
+            'name', 'student_id_num', 'id_card', 'gender', 'birth_date',
+            'phone', 'dormitory', 'home_address', 'grade_year',
+            'major', 'department', 'minor_department', 'degree_level', 'credits_earned'
+        ]
+        labels = {
+            'name': '学生姓名',
+            'student_id_num': '学号',
+            'id_card': '身份证号',
+            'gender': '性别',
+            'birth_date': '出生日期',
+            'phone': '联系电话',
+            'dormitory': '宿舍信息',
+            'home_address': '家庭地址',
+            'grade_year': '入学年份',
+            'major': '专业',
+            'department': '所属院系',
+            'minor_department': '辅修院系',
+            'degree_level': '学位等级',
+            'credits_earned': '已修学分',
+        }
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'student_id_num': forms.TextInput(attrs={'class': 'form-control'}),
+            'id_card': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'dormitory': forms.TextInput(attrs={'class': 'form-control'}),
+            'home_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'grade_year': forms.NumberInput(attrs={'class': 'form-control'}),
+            'major': forms.Select(attrs={'class': 'form-select'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'minor_department': forms.Select(attrs={'class': 'form-select'}),
+            'degree_level': forms.TextInput(attrs={'class': 'form-control'}),
+            'credits_earned': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
         }

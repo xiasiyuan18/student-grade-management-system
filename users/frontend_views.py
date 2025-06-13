@@ -4,7 +4,7 @@ from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth import get_user_model
-from .forms import TeacherForm, StudentForm, StudentProfileUpdateForm, TeacherProfileUpdateForm 
+from .forms import TeacherForm, StudentForm, StudentProfileUpdateForm, TeacherProfileUpdateForm, StudentUpdateForm, StudentProfileEditForm
 from .models import Teacher, Student 
 # ✨ 关键修正：从 .forms 文件中导入所有需要的表单类
 
@@ -33,7 +33,6 @@ class TeacherListView(AdminRequiredMixin, generic.ListView):
         return qs.filter(role=User.Role.TEACHER).order_by('-date_joined')
 
 class TeacherCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.CreateView):
-    # 这里依然是创建 User
     model = User
     form_class = TeacherForm
     template_name = 'users/teacher_form.html'
@@ -42,23 +41,37 @@ class TeacherCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.CreateV
 
     def form_valid(self, form):
         """
-        在表单验证成功后，我们不仅要设置角色，
-        还要为这个新用户创建一个关联的 Teacher 档案。
+        在表单验证成功后，创建用户和教师档案
         """
-        # 首先，像之前一样，设置角色并保存 User 对象
-        user = form.save(commit=False) # 先不提交到数据库
-        user.role = User.Role.TEACHER
-        user.save() # 现在保存 User
+        try:
+            from django.db import transaction
+            with transaction.atomic():
+                # 保存用户但不提交到数据库
+                user = form.save(commit=False)
+                user.role = User.Role.TEACHER
+                user.save()
+                print(f"DEBUG: 创建用户成功 - {user.username}")
 
-        # ✨ 核心修正 2：为新创建的 User 创建一个 Teacher 档案
-        # 这确保了数据的一致性
-        Teacher.objects.create(user=user)
+                # 创建教师档案
+                teacher_profile = Teacher.objects.create(
+                    user=user,
+                    teacher_id_num=form.cleaned_data['teacher_id_num'],
+                    name=form.cleaned_data['name'],
+                    department=form.cleaned_data['department']
+                )
+                print(f"DEBUG: 创建教师档案成功 - {teacher_profile.name}")
 
-        # 将保存的 user 对象赋给 self.object，以便 success_message 能获取到
-        self.object = user
-        return super().form_valid(form)
+                self.object = user
+                # 注意：这里不要调用 super().form_valid(form)，因为会再次保存表单
+                return super(generic.CreateView, self).form_valid(form)
+                
+        except Exception as e:
+            print(f"ERROR: 创建教师时发生错误 - {str(e)}")
+            import traceback
+            traceback.print_exc()
+            form.add_error(None, f"创建教师失败: {str(e)}")
+            return self.form_invalid(form)
 
-    # get_success_message 方法现在可以正常工作了
     def get_success_message(self, cleaned_data):
         return self.success_message % {'username': self.object.username}
     
@@ -114,12 +127,24 @@ class StudentCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.FormVie
         return self.success_message % {'username': cleaned_data['username']}
 
 class StudentUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
-    # 这个视图可能需要进一步完善，但目前不会引起启动错误
+    """管理员编辑学生用户账户信息"""
     model = User 
-    fields = ['username', 'email']
+    form_class = StudentUpdateForm
     template_name = 'users/user_form_simple.html'
     success_url = reverse_lazy('users:student-list')
     success_message = "学生账户信息已成功更新！"
+    
+    def get_queryset(self):
+        """确保只能更新角色为学生的用户"""
+        return User.objects.filter(role=User.Role.STUDENT)
+
+class StudentProfileEditView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    """管理员编辑学生档案详细信息"""
+    model = Student
+    form_class = StudentProfileEditForm
+    template_name = 'users/student_profile_edit.html'
+    success_url = reverse_lazy('users:student-list')
+    success_message = "学生档案信息已成功更新！"
 
 # =============================================================================
 # 学生个人中心 (学生视角)

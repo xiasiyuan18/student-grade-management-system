@@ -1,4 +1,4 @@
-# core/urls.py (解决冲突后的最终版本)
+# core/urls.py
 
 from django.contrib import admin
 from django.urls import path, include
@@ -11,6 +11,19 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 urlpatterns = [
     # 1. Django Admin 后台路由
     path('admin/', admin.site.urls),
+
+    # ====================================================================== #
+    # ✨✨ 新增代码开始 ✨✨                                                   #
+    # ====================================================================== #
+    
+    # Django 内置的认证路由 (login, logout, password_reset, 等)
+    # 这会创建 /accounts/login/, /accounts/logout/ 等页面
+    # 并让 {% url 'login' %} 和 {% url 'logout' %} 可以正常工作
+    path('accounts/', include('django.contrib.auth.urls')),
+
+    # ====================================================================== #
+    # ✨✨ 新增代码结束 ✨✨                                                   #
+    # ====================================================================== #
 
     # 2. 前端页面路由 (采用您的 /frontend/ 结构)
     #    根路径 '/' 直接指向前端的主页

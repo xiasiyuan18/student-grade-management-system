@@ -1,6 +1,8 @@
 # student_grade_management_system/courses/forms.py
 from django import forms
 from .models import Course, TeachingAssignment
+from users.models import Teacher
+from departments.models import Department
 
 class CourseForm(forms.ModelForm):
     class Meta:
@@ -29,19 +31,46 @@ class CourseForm(forms.ModelForm):
         }
 
 class TeachingAssignmentForm(forms.ModelForm):
+    """创建和编辑授课安排的表单"""
+    
     class Meta:
         model = TeachingAssignment
-        fields = '__all__'
+        fields = ['teacher', 'course', 'semester']  # 只使用实际存在的字段
+        labels = {
+            'teacher': '授课教师',
+            'course': '课程',
+            'semester': '学期',
+        }
         widgets = {
             'teacher': forms.Select(attrs={'class': 'form-select'}),
             'course': forms.Select(attrs={'class': 'form-select'}),
-            'semester': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '例如: 2024 Fall'}),
+            'semester': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '如：2024 Fall'}),
         }
-        labels = {
-            'teacher': '授课教师',
-            'course': '所授课程',
-            'semester': '学期',
-        }
-        help_texts = {
-            'semester': '授课发生的学期，例如 2024 Fall',
-        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 设置教师选项
+        self.fields['teacher'].queryset = Teacher.objects.select_related('user', 'department')
+        # 简化显示格式，避免字段名错误
+        self.fields['teacher'].label_from_instance = self.get_teacher_display
+        
+        # 设置课程选项
+        self.fields['course'].queryset = Course.objects.select_related('department')
+        # 简化显示格式，避免字段名错误
+        self.fields['course'].label_from_instance = self.get_course_display
+
+    def get_teacher_display(self, obj):
+        """安全地获取教师显示信息"""
+        try:
+            dept_name = getattr(obj.department, 'dept_name', None) or getattr(obj.department, 'department_name', '未知院系')
+            return f"{obj.name} ({obj.teacher_id_num}) - {dept_name}"
+        except Exception:
+            return f"{obj.name} ({obj.teacher_id_num})"
+
+    def get_course_display(self, obj):
+        """安全地获取课程显示信息"""
+        try:
+            dept_name = getattr(obj.department, 'dept_name', None) or getattr(obj.department, 'department_name', '未知院系')
+            return f"{obj.course_name} ({obj.course_id}) - {dept_name}"
+        except Exception:
+            return f"{obj.course_name} ({obj.course_id})"

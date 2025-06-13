@@ -28,10 +28,6 @@
     {% endif %}
 </header>
 
-{# ====================================================================== #}
-{#  ✨✨ 关键修正：重构整体布局 ✨✨                                      #}
-{# ====================================================================== #}
-
 <div class="container-fluid">
     <div class="row">
 
@@ -47,34 +43,74 @@
                         </li>
                         
                         {# --- 管理员菜单 --- #}
-                        {% if user.is_superuser %}
+                        {% if user.is_superuser or user.role == 'ADMIN' %}
                         <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
-                            <span>管理员菜单</span>
+                            <span>系统管理</span>
                         </h6>
                         <li class="nav-item">
-                            <a class="nav-link" href="{% url 'users:student-list' %}">
-                                <i class="bi bi-people-fill align-text-bottom"></i> 学生管理
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'users:teacher-list' %}">
-                                <i class="bi bi-person-video3 align-text-bottom"></i> 教师管理
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'departments:department-list' %}">
-                                <i class="bi bi-building align-text-bottom"></i> 院系专业管理
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{% url 'courses:course-list' %}">
-                                <i class="bi bi-book-half align-text-bottom"></i> 课程管理
-                            </a>
-                        </li>
+    <a class="nav-link" href="{% url 'departments:department-list' %}">
+        <i class="bi bi-building align-text-bottom"></i> 院系管理
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'departments:major-list' %}">
+        <i class="bi bi-mortarboard align-text-bottom"></i> 专业管理
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'users:student-list' %}">
+        <i class="bi bi-people align-text-bottom"></i> 学生管理
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'users:teacher-list' %}">
+        <i class="bi bi-person-badge align-text-bottom"></i> 教师管理
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'courses:teaching-assignment-list' %}">
+        <i class="bi bi-calendar-check align-text-bottom"></i> 授课安排管理
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{% url 'courses:bulk-enrollment' %}">
+        <i class="bi bi-person-plus align-text-bottom"></i> 学生选课管理
+    </a>
+</li>
                         {% endif %}
 
-                        {# --- 其他角色菜单 (教师、学生) --- #}
-                        {# ... (这里的逻辑保持不变) ... #}
+                        {# ====================================================================== #}
+                        {# ✨✨ 新增代码开始 ✨✨                                                   #}
+                        {# ====================================================================== #}
+
+                        {# --- 学生菜单 --- #}
+                        {% if user.role == 'STUDENT' %}
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                            <span>学生功能</span>
+                        </h6>
+                        <li class="nav-item">
+    <a class="nav-link" href="{% url 'grades:my-grades' %}">
+        <i class="bi bi-trophy align-text-bottom"></i> 我的成绩
+    </a>
+</li>
+                        {% endif %}
+
+                        {# --- 教师菜单 --- #}
+                        {% if user.role == 'TEACHER' %}
+                        <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-muted text-uppercase">
+                            <span>教师菜单</span>
+                        </h6>
+                        <li class="nav-item">
+    <a class="nav-link" href="{% url 'grades:teacher-course-list' %}">
+        <i class="bi bi-pencil-square align-text-bottom"></i> 成绩管理
+    </a>
+</li>
+                        {# 将来可以在这里添加教师查看成绩等链接 #}
+                        {% endif %}
+
+                        {# ====================================================================== #}
+                        {# ✨✨ 新增代码结束 ✨✨                                                   #}
+                        {# ====================================================================== #}
 
                     </ul>
                 </div>

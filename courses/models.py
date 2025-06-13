@@ -130,3 +130,42 @@ class TeachingAssignment(models.Model):
         verbose_name = "教师授课安排"
         verbose_name_plural = "教师授课安排"
         unique_together = ("teacher", "course", "semester")
+
+
+class CourseEnrollment(models.Model):
+    """学生选课记录"""
+    student = models.ForeignKey(
+        'users.Student',
+        on_delete=models.CASCADE,
+        verbose_name='学生',
+        related_name='course_enrollments'
+    )
+    teaching_assignment = models.ForeignKey(
+        TeachingAssignment,
+        on_delete=models.CASCADE,
+        verbose_name='授课安排',
+        related_name='enrolled_students'
+    )
+    enrollment_date = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='选课时间'
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('ENROLLED', '已选课'),
+            ('DROPPED', '已退课'),
+            ('COMPLETED', '已完成'),
+        ],
+        default='ENROLLED',
+        verbose_name='选课状态'
+    )
+
+    class Meta:
+        verbose_name = '选课记录'
+        verbose_name_plural = verbose_name
+        unique_together = ['student', 'teaching_assignment']
+        ordering = ['-enrollment_date']
+
+    def __str__(self):
+        return f"{self.student.name} - {self.teaching_assignment.course.course_name}"

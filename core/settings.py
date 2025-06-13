@@ -75,7 +75,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "student-grade-management-system",
         "USER": "root",
-        "PASSWORD": "xiasiyuan18",
+        "PASSWORD": "123456dp",
         "HOST": "localhost",
         "PORT": "3306",
         "OPTIONS": {

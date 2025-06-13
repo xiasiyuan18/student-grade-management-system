@@ -1,26 +1,36 @@
 {% extends 'base.html' %}
 {% block title %}学生列表{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between ...">
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">学生管理</h1>
     <a href="{% url 'users:student-create' %}" class="btn btn-sm btn-outline-secondary">添加新学生账户</a>
 </div>
 <div class="table-responsive">
-    <table class="table ...">
-        <thead>...</thead>
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>用户名</th>
+                <th>姓名</th>
+                <th>学号</th>
+                <th>专业</th>
+                <th>操作</th>
+            </tr>
+        </thead>
         <tbody>
             {% for student in students %}
             <tr>
                 <td>{{ student.user.username }}</td>
                 <td>{{ student.name }}</td>
                 <td>{{ student.student_id_num }}</td>
-                <td>{{ student.major.name|default:"-" }}</td>
+                <td>{{ student.major.major_name|default:"-" }}</td>
                 <td>
-                    {# ✨ 关键修正：编辑按钮指向档案编辑页 #}
-                    <a href="{% url 'users:student-profile-update' student.user.pk %}" class="btn btn-primary btn-sm">编辑档案</a>
-                    <a href="{% url 'users:student-delete' student.user.pk %}" class="btn btn-danger btn-sm">删除账户</a>
+                    <a href="{% url 'users:student-update' student.user.pk %}" class="btn btn-primary btn-sm">编辑账户</a>
+                    <a href="{% url 'users:student-profile-edit' student.pk %}" class="btn btn-info btn-sm">编辑档案</a>
+                    <a href="{% url 'users:student-delete' student.user.pk %}" class="btn btn-danger btn-sm">删除</a>
                 </td>
             </tr>
+            {% empty %}
+            <tr><td colspan="5">暂无学生信息。</td></tr>
             {% endfor %}
         </tbody>
     </table>

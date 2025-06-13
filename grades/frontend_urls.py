@@ -1,14 +1,14 @@
 # student_grade_management_system/grades/frontend_urls.py
 from django.urls import path
-from django.views.generic import TemplateView # 用于显示简单的静态模板
+from . import views
 
-app_name = 'grades_frontend' # 定义命名空间
+app_name = 'grades'
 
 urlpatterns = [
-    # 暂时将“我的成绩”指向一个占位模板
-    path('my-grades/', TemplateView.as_view(template_name="grades/my_grades_list_placeholder.html"), name='my_grades_list'),
-    # 暂时将“成绩管理”指向一个占位模板
-    path('list/', TemplateView.as_view(template_name="grades/grade_list_placeholder.html"), name='grade_list'),
-
-    # 将来您可以添加更多成绩管理的前端URL
+    # 成绩录入页面（教师用）
+    path('entry/', views.GradeEntryView.as_view(), name='grade_entry'),
+    
+    # 学生查看自己成绩
+    path('my-grades/', views.MyGradesView.as_view(), name='my-grades'),
+    path('teacher/courses/', views.TeacherCourseListView.as_view(), name='teacher-course-list'),
 ]

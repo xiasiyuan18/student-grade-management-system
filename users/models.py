@@ -83,6 +83,26 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return self.username
 
+    @property
+    def student_profile(self):
+        """获取学生档案"""
+        if self.role == self.Role.STUDENT:
+            try:
+                return self.student
+            except Student.DoesNotExist:
+                return None
+        return None
+
+    @property
+    def teacher_profile(self):
+        """获取教师档案"""
+        if self.role == self.Role.TEACHER:
+            try:
+                return self.teacher
+            except Teacher.DoesNotExist:
+                return None
+        return None
+
     class Meta:
         verbose_name = _("系统用户")
         verbose_name_plural = _("系统用户")

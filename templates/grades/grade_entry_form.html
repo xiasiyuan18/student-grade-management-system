@@ -63,7 +63,16 @@
                         <tbody>
                             {% for student_grade in students_grades %}
                                 <tr>
-                                    <td>{{ student_grade.student.user.get_full_name }}</td>
+                                    {# 优化：尝试使用 student.name，如果不存在则回退到 user.get_full_name 或 username #}
+                                    <td>
+                                        {% if student_grade.student.name %}
+                                            {{ student_grade.student.name }}
+                                        {% elif student_grade.student.user.get_full_name %}
+                                            {{ student_grade.student.user.get_full_name }}
+                                        {% else %}
+                                            {{ student_grade.student.user.username }}
+                                        {% endif %}
+                                    </td>
                                     <td>{{ student_grade.student.student_id_num }}</td>
                                     <td>{{ student_grade.form.initial.score|default:"未录入" }}</td>
                                     <td>
@@ -100,7 +109,7 @@
                 <button type="submit" class="btn btn-success mt-3">提交所有成绩</button>
                 {% else %}
                     <div class="alert alert-warning" role="alert">
-                        该授课安排下暂无学生或无法加载学生成绩。
+                        该授课安排下暂无学生或无法加载学生成绩。请确保已创建学生档案。
                     </div>
                 {% endif %}
             </form>

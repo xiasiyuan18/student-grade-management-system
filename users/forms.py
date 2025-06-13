@@ -1,10 +1,28 @@
+# users/forms.py (解决冲突后的最终版本)
+
 from django import forms
 from django.db import transaction
 from django.contrib.auth import get_user_model
+from django.contrib.auth.forms import AuthenticationForm # 解决方案：保留队友的 import
 from .models import Student
 from departments.models import Major, Department
 
 User = get_user_model()
+
+
+# --- 解决方案：保留队友的登录表单 ---
+class CustomAuthenticationForm(AuthenticationForm):
+    """
+    继承Django内置的认证表单，并为其字段添加Bootstrap样式。
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 为用户名和密码字段添加 Bootstrap 的 form-control 类
+        self.fields['username'].widget.attrs.update({'class': 'form-control', 'placeholder': '请输入用户名'})
+        self.fields['password'].widget.attrs.update({'class': 'form-control', 'placeholder': '请输入密码'})
+
+
+# --- 解决方案：保留您的所有教师和学生管理表单 ---
 
 # --- 教师账户创建表单 ---
 class TeacherForm(forms.ModelForm):
@@ -24,7 +42,6 @@ class TeacherForm(forms.ModelForm):
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
             'first_name': forms.TextInput(attrs={'class': 'form-control'}),
             'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            # 注意：密码字段的 widget 在上面单独定义了，这里的不生效，但写上保持统一性
             'password': forms.PasswordInput(attrs={'class': 'form-control'}),
         }
 
@@ -38,7 +55,6 @@ class TeacherForm(forms.ModelForm):
 
 # --- 最终的学生创建表单 ---
 class StudentForm(forms.Form):
-    # (所有字段定义保持不变)
     username = forms.CharField(label="登录用户名", max_length=150, help_text="学生的登录账号。", widget=forms.TextInput(attrs={'class': 'form-control'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class': 'form-control'}), label="初始密码")
     email = forms.EmailField(label="邮箱地址", required=False, widget=forms.EmailInput(attrs={'class': 'form-control'}))
@@ -49,15 +65,10 @@ class StudentForm(forms.Form):
     department = forms.ModelChoiceField(queryset=Department.objects.all(), label="所属院系", widget=forms.Select(attrs={'class': 'form-select'}))
     major = forms.ModelChoiceField(queryset=Major.objects.all(), label="所属专业", widget=forms.Select(attrs={'class': 'form-select'}))
     
-    # ✨ 关键修正：添加一个自定义的验证方法 ✨
     def clean_username(self):
-        # 获取用户在表单中输入的用户名
         username = self.cleaned_data.get('username')
-        # 检查数据库中是否已存在同名用户
         if User.objects.filter(username=username).exists():
-            # 如果存在，就引发一个验证错误，这个错误信息会显示在前端页面上
             raise forms.ValidationError("此用户名已被占用，请选择其他用户名。")
-        # 如果不存在，就返回这个用户名，验证通过
         return username
 
     @transaction.atomic
@@ -89,19 +100,13 @@ class StudentForm(forms.Form):
 # 学生个人档案更新表单
 class StudentProfileUpdateForm(forms.ModelForm):
     class Meta:
-        model = Student # 这个表单的模型是 Student
-        
-        # ✨ 核心修正：只包含 Student 模型中实际存在且适合学生修改的字段
+        model = Student
         fields = ('phone', 'dormitory', 'home_address') 
-        
-        # 为表单字段设置更友好的中文标签
         labels = {
             'phone': '我的联系电话',
             'dormitory': '我的宿舍信息',
             'home_address': '我的家庭地址',
         }
-
-        # 为输入框添加 Bootstrap 样式，并为地址使用大一点的文本框
         widgets = {
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'dormitory': forms.TextInput(attrs={'class': 'form-control'}),
@@ -109,11 +114,10 @@ class StudentProfileUpdateForm(forms.ModelForm):
         }
 
 
-# ✨ 新增：专为教师修改个人信息设计的表单
+# 专为教师修改个人信息设计的表单
 class TeacherProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = User
-        # 重要的安全措施：只允许教师修改这几个字段
         fields = ('email', 'first_name', 'last_name')
         labels = {
             'email': '邮箱地址',

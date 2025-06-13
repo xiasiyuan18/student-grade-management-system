@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block title %}主页{% endblock %}
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">欢迎来到学生成绩管理系统！</h1>
+    <p class="lead">请通过导航栏或下方链接访问系统功能。</p>
+    <hr class="my-4">
+    <p>
+        {% if user.is_authenticated %}
+            <a class="btn btn-primary btn-lg" href="{% url 'dashboard' %}" role="button">进入仪表盘</a>
+        {% else %}
+            <a class="btn btn-primary btn-lg" href="{% url 'login' %}" role="button">立即登录</a>
+        {% endif %}
+    </p>
+</div>
+{% endblock %}

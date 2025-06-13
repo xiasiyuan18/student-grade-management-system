@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}
+    {% if form.instance.pk %}编辑课程{% else %}新增课程{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card shadow-sm mt-5">
+            <div class="card-body">
+                <h3 class="card-title text-center mb-4">
+                    {% if form.instance.pk %}编辑课程{% else %}新增课程{% endif %}
+                </h3>
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {# 非字段错误显示 #}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger" role="alert">
+                            <strong>错误：</strong>
+                            <ul>
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+
+                    {# 遍历表单字段 #}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            
+                            {# ✨ 关键修正 #1：直接渲染字段。样式应该在 forms.py 中定义 ✨ #}
+                            {{ field }}
+                            
+                            {% if field.help_text %}
+                                <div class="form-text text-muted">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="invalid-feedback d-block">{{ error }}</div> {# 字段错误信息 #}
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg mt-3">
+                            {% if form.instance.pk %}保存更改{% else %}创建课程{% endif %}
+                        </button>
+                        
+                        {# ✨ 关键修正 #2：URL名称使用连字符 '-' ✨ #}
+                        <a href="{% url 'courses:course-list' %}" class="btn btn-secondary btn-lg">取消</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends 'base.html' %} {# 继承基础模板 #}
+{% block title %}主页 / 仪表盘{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center bg-light p-5 rounded">
+    <h1 class="display-4">欢迎来到学生成绩管理系统！</h1>
+    <p class="lead">
+        {% if user.is_authenticated %}
+            您好，{{ user.username }}！这里是您的仪表盘。
+        {% else %}
+            请登录以访问更多功能。
+        {% endif %}
+    </p>
+    <hr class="my-4">
+    <p>
+        {% if user.is_authenticated %}
+            {# 根据文档，这里是初步导航，指向核心模块列表页的占位链接 #}
+            <p>您可以访问以下模块：</p>
+            <ul class="list-unstyled">
+                <li><a href="#" class="btn btn-outline-primary m-1">院系管理 (A)</a></li>
+                <li><a href="#" class="btn btn-outline-primary m-1">专业管理 (A)</a></li>
+                <li><a href="#" class="btn btn-outline-primary m-1">学生管理 (B)</a></li>
+                <li><a href="#" class="btn btn-outline-primary m-1">教师管理 (D)</a></li>
+                <li><a href="{% url 'courses:course_list' %}" class="btn btn-outline-primary m-1">课程管理 (C)</a></li> {# 示例：指向课程列表 #}
+                <li><a href="{% url 'grades:grade_entry' %}" class="btn btn-outline-primary m-1">成绩录入 (C)</a></li> {# 示例：指向成绩录入 #}
+                {# 后续会根据实际URL更新这些 #}
+            </ul>
+        {% else %}
+            <a class="btn btn-primary btn-lg" href="{% url 'users:login' %}" role="button">立即登录</a>
+        {% endif %}
+    </p>
+</div>
+{% endblock %}

@@ -1,23 +1,27 @@
-# student_grade_management_system/courses/views.py
+# courses/views.py (这个文件用于后端API视图)
+
 from rest_framework import viewsets, permissions
-from rest_framework import serializers 
-
-# 导入自定义权限 (假设你之前已创建 users/permissions.py)
-from users.permissions import IsAdminOrReadOnly 
-
-# 导入模型
-from .models import Course, TeachingAssignment 
-# 导入序列化器 (假设它们存在于 courses/serializers.py)
+from .models import Course, TeachingAssignment
 from .serializers import CourseSerializer, TeachingAssignmentSerializer
-
 
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all().order_by('course_id')
     serializer_class = CourseSerializer
-    permission_classes = [IsAdminOrReadOnly] 
+    
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [permissions.IsAdminUser] 
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
-
-class TeachingAssignmentViewSet(viewsets.ModelViewSet): 
-    queryset = TeachingAssignment.objects.all().order_by('semester', 'course__course_name') 
+class TeachingAssignmentViewSet(viewsets.ModelViewSet):
+    queryset = TeachingAssignment.objects.all().order_by('semester', 'course__course_name')
     serializer_class = TeachingAssignmentSerializer
-    permission_classes = [IsAdminOrReadOnly]
+    
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            permission_classes = [permissions.IsAdminUser]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]

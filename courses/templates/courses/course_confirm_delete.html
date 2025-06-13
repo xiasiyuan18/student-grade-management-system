@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+{% block title %}确认删除课程{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card border-danger shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h3 class="mb-0">确认删除操作</h3>
+                </div>
+                <div class="card-body">
+                    <p class="card-text fs-5">
+                        您确定要删除课程：
+                    </p>
+                    
+                    {# 显示要删除对象的信息，让用户确认 #}
+                    <div class="alert alert-secondary">
+                        <strong>{{ object.course_name }}</strong> (课程编号: {{ object.course_id }})
+                    </div>
+                    
+                    <p class="text-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <strong>请注意：此操作不可恢复！</strong>
+                    </p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            {# 取消按钮，返回课程列表页 #}
+                            <a href="{% url 'courses:course-list' %}" class="btn btn-secondary me-md-2">取消</a>
+                            {# 确认删除按钮，触发表单提交 #}
+                            <button type="submit" class="btn btn-danger">确认删除</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

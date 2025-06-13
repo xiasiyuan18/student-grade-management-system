@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+{% block title %}成绩录入{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">成绩录入与管理</h2>
+
+    {# 消息提示区域 #}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {# 选择授课安排的表单 #}
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+            选择授课安排
+        </div>
+        <div class="card-body">
+            <form method="get" action="{% url 'grades:grade_entry' %}">
+                <div class="mb-3">
+                    <label for="{{ select_form.teaching_assignment.id_for_label }}" class="form-label">授课安排</label>
+                    {{ select_form.teaching_assignment }}
+                    {% if select_form.teaching_assignment.help_text %}
+                        <div class="form-text text-muted">{{ select_form.teaching_assignment.help_text }}</div>
+                    {% endif %}
+                    {% for error in select_form.teaching_assignment.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+                <button type="submit" name="select_assignment" class="btn btn-primary">选择</button>
+            </form>
+        </div>
+    </div>
+
+    {# 成绩录入表单（只有当选择了授课安排后才显示） #}
+    {% if assignment %}
+    <div class="card shadow-sm">
+        <div class="card-header">
+            {{ assignment.course.course_name }} ({{ assignment.semester }}) - 学生成绩
+        </div>
+        <div class="card-body">
+            <form method="post" action="{% url 'grades:grade_entry' %}">
+                {% csrf_token %}
+                <input type="hidden" name="assignment_id" value="{{ assignment.pk }}">
+
+                {% if students_grades %}
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>学生姓名</th>
+                                <th>学号</th>
+                                <th>当前分数</th>
+                                <th>录入/修改分数</th>
+                                {# <th>操作 (删除)</th> #}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student_grade in students_grades %}
+                                <tr>
+                                    {# 优化：尝试使用 student.name，如果不存在则回退到 user.get_full_name 或 username #}
+                                    <td>
+                                        {% if student_grade.student.name %}
+                                            {{ student_grade.student.name }}
+                                        {% elif student_grade.student.user.get_full_name %}
+                                            {{ student_grade.student.user.get_full_name }}
+                                        {% else %}
+                                            {{ student_grade.student.user.username }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ student_grade.student.student_id_num }}</td>
+                                    <td>{{ student_grade.form.initial.score|default:"未录入" }}</td>
+                                    <td>
+                                        {# 隐藏字段，传递学生ID和成绩对象ID #}
+                                        <input type="hidden" name="student_{{ student_grade.student.pk }}_student_id" value="{{ student_grade.student.pk }}">
+                                        <input type="hidden" name="student_{{ student_grade.student.pk }}_grade_obj_id" value="{{ student_grade.grade_obj_id|default:'' }}">
+
+                                        <input type="number"
+                                               step="0.01"
+                                               min="0"
+                                               max="100"
+                                               name="student_{{ student_grade.student.pk }}_score"
+                                               class="form-control"
+                                               value="{{ student_grade.form.score.value|default:'' }}"
+                                               placeholder="请输入分数">
+                                        {# 字段错误提示 #}
+                                        {% for error in student_grade.form.score.errors %}
+                                            <div class="invalid-feedback d-block">{{ error }}</div>
+                                        {% endfor %}
+                                    </td>
+                                    {# <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="delete_student_{{ student_grade.student.pk }}" id="delete_student_{{ student_grade.student.pk }}">
+                                            <label class="form-check-label" for="delete_student_{{ student_grade.student.pk }}">
+                                                删除
+                                            </label>
+                                        </div>
+                                    </td> #}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <button type="submit" class="btn btn-success mt-3">提交所有成绩</button>
+                {% else %}
+                    <div class="alert alert-warning" role="alert">
+                        该授课安排下暂无学生或无法加载学生成绩。请确保已创建学生档案。
+                    </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

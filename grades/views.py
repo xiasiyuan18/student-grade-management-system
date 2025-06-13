@@ -287,6 +287,32 @@ class MyGradesView(LoginRequiredMixin, ListView):
                 # 统计课程数量
                 context['total_courses'] = len(grades)
                 context['completed_courses'] = len(valid_scores)
+                
+                # 修复：计算成绩分布
+                grade_distribution = {
+                    'excellent': 0,  # 90+
+                    'good': 0,       # 80-89
+                    'average': 0,    # 70-79
+                    'pass': 0,       # 60-69
+                    'fail': 0        # <60
+                }
+                
+                for grade in grades:
+                    if grade.score is not None:
+                        score = float(grade.score)  # 转换为float进行比较
+                        if score >= 90:
+                            grade_distribution['excellent'] += 1
+                        elif score >= 80:
+                            grade_distribution['good'] += 1
+                        elif score >= 70:
+                            grade_distribution['average'] += 1
+                        elif score >= 60:
+                            grade_distribution['pass'] += 1
+                        else:
+                            grade_distribution['fail'] += 1
+                
+                context['grade_distribution'] = grade_distribution
+                print(f"DEBUG: 成绩分布 - {grade_distribution}")
         
         return context
 

@@ -98,7 +98,8 @@
         </table>
     </div>
 
-    <!-- 成绩分析图表（可选） -->
+    <!-- 修复：使用视图中计算的成绩分布 -->
+    {% if grade_distribution %}
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
@@ -106,49 +107,57 @@
                     <h5>成绩分布</h5>
                 </div>
                 <div class="card-body">
-                    {% with excellent=0 good=0 average=0 pass=0 fail=0 %}
-                        {% for grade in grades_list %}
-                            {% if grade.score %}
-                                {% if grade.score >= 90 %}
-                                    {% with excellent=excellent|add:1 %}{% endwith %}
-                                {% elif grade.score >= 80 %}
-                                    {% with good=good|add:1 %}{% endwith %}
-                                {% elif grade.score >= 70 %}
-                                    {% with average=average|add:1 %}{% endwith %}
-                                {% elif grade.score >= 60 %}
-                                    {% with pass=pass|add:1 %}{% endwith %}
-                                {% else %}
-                                    {% with fail=fail|add:1 %}{% endwith %}
-                                {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                        <div class="row text-center">
-                            <div class="col">
-                                <span class="badge bg-success">优秀(90+)</span><br>
-                                <strong>{{ excellent }}</strong> 门
-                            </div>
-                            <div class="col">
-                                <span class="badge bg-primary">良好(80-89)</span><br>
-                                <strong>{{ good }}</strong> 门
-                            </div>
-                            <div class="col">
-                                <span class="badge bg-info">中等(70-79)</span><br>
-                                <strong>{{ average }}</strong> 门
-                            </div>
-                            <div class="col">
-                                <span class="badge bg-warning">及格(60-69)</span><br>
-                                <strong>{{ pass }}</strong> 门
-                            </div>
-                            <div class="col">
-                                <span class="badge bg-danger">不及格(<60)</span><br>
-                                <strong>{{ fail }}</strong> 门
-                            </div>
+                    <div class="row text-center">
+                        <div class="col">
+                            <span class="badge bg-success">优秀(90+)</span><br>
+                            <strong>{{ grade_distribution.excellent }}</strong> 门
                         </div>
-                    {% endwith %}
+                        <div class="col">
+                            <span class="badge bg-primary">良好(80-89)</span><br>
+                            <strong>{{ grade_distribution.good }}</strong> 门
+                        </div>
+                        <div class="col">
+                            <span class="badge bg-info">中等(70-79)</span><br>
+                            <strong>{{ grade_distribution.average }}</strong> 门
+                        </div>
+                        <div class="col">
+                            <span class="badge bg-warning">及格(60-69)</span><br>
+                            <strong>{{ grade_distribution.pass }}</strong> 门
+                        </div>
+                        <div class="col">
+                            <span class="badge bg-danger">不及格(<60)</span><br>
+                            <strong>{{ grade_distribution.fail }}</strong> 门
+                        </div>
+                    </div>
+                    
+                    <!-- 添加百分比显示 -->
+                    <hr class="mt-3">
+                    <div class="row text-center">
+                        {% with total_scored=grade_distribution.excellent|add:grade_distribution.good|add:grade_distribution.average|add:grade_distribution.pass|add:grade_distribution.fail %}
+                        {% if total_scored > 0 %}
+                            <div class="col">
+                                <small class="text-muted">{{ grade_distribution.excellent|floatformat:0 }}/{{ total_scored }} ({% widthratio grade_distribution.excellent total_scored 100 %}%)</small>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted">{{ grade_distribution.good|floatformat:0 }}/{{ total_scored }} ({% widthratio grade_distribution.good total_scored 100 %}%)</small>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted">{{ grade_distribution.average|floatformat:0 }}/{{ total_scored }} ({% widthratio grade_distribution.average total_scored 100 %}%)</small>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted">{{ grade_distribution.pass|floatformat:0 }}/{{ total_scored }} ({% widthratio grade_distribution.pass total_scored 100 %}%)</small>
+                            </div>
+                            <div class="col">
+                                <small class="text-muted">{{ grade_distribution.fail|floatformat:0 }}/{{ total_scored }} ({% widthratio grade_distribution.fail total_scored 100 %}%)</small>
+                            </div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+    {% endif %}
 
 {% else %}
     <div class="alert alert-info">

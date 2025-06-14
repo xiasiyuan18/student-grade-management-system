@@ -11,23 +11,14 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from django.core.exceptions import PermissionDenied
 
 from .models import Course, TeachingAssignment, CourseEnrollment
-from .forms import TeachingAssignmentForm
+from .forms import CourseForm, TeachingAssignmentForm
 from users.models import Student
-
-class AdminRequiredMixin(UserPassesTestMixin):
-    """
-    Mixin that requires the user to be an admin (staff user).
-    """
-    def test_func(self):
-        return self.request.user.is_authenticated and self.request.user.is_staff
-    
-    def handle_no_permission(self):
-        raise PermissionDenied("You must be an admin to access this page.")
+from common.mixins import AdminRequiredMixin
 
 # --- 课程管理视图 (管理员视角) ---
 
 class CourseListView(AdminRequiredMixin, generic.ListView):
-    """课程列表"""
+    """课程列表 - 仅限管理员"""
     model = Course
     template_name = 'courses/course_list.html'
     context_object_name = 'courses'
@@ -36,10 +27,46 @@ class CourseListView(AdminRequiredMixin, generic.ListView):
     def get_queryset(self):
         return Course.objects.select_related('department').order_by('department__dept_name', 'course_name')
 
+
+class CourseCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.CreateView):
+    """创建新课程 - 仅限管理员"""
+    model = Course
+    form_class = CourseForm
+    template_name = 'courses/course_form.html'
+    success_url = reverse_lazy('courses:course-list')
+    success_message = "课程 '%(course_name)s' 已成功创建！"
+
+
+class CourseUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    """编辑课程 - 仅限管理员"""
+    model = Course
+    form_class = CourseForm
+    template_name = 'courses/course_form.html'
+    success_url = reverse_lazy('courses:course-list')
+    success_message = "课程 '%(course_name)s' 已成功更新！"
+
+
+class CourseDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
+    """删除课程 - 仅限管理员"""
+    model = Course
+    template_name = 'courses/course_confirm_delete.html'
+    success_url = reverse_lazy('courses:course-list')
+    success_message = "课程已成功删除！"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # 检查是否有相关的授课安排
+        context['has_assignments'] = TeachingAssignment.objects.filter(course=self.object).exists()
+        # 检查是否有选课记录
+        assignment_ids = TeachingAssignment.objects.filter(course=self.object).values_list('id', flat=True)
+        context['has_enrollments'] = CourseEnrollment.objects.filter(teaching_assignment__in=assignment_ids).exists()
+        return context
+
+
 # --- 授课安排管理视图 (管理员视角) ---
 
 class TeachingAssignmentListView(AdminRequiredMixin, generic.ListView):
-    """授课安排列表"""
+    """授课安排列表 - 仅限管理员"""
     model = TeachingAssignment
     template_name = 'courses/teaching_assignment_list.html'
     context_object_name = 'assignments'
@@ -51,6 +78,7 @@ class TeachingAssignmentListView(AdminRequiredMixin, generic.ListView):
             'teacher__user', 'teacher__department', 'course__department'
         ).order_by('semester', 'course__course_name', 'teacher__name')
 
+
 class TeachingAssignmentCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.CreateView):
     """创建授课安排"""
     model = TeachingAssignment
@@ -59,6 +87,7 @@ class TeachingAssignmentCreateView(AdminRequiredMixin, SuccessMessageMixin, gene
     success_url = reverse_lazy('courses:teaching-assignment-list')
     success_message = "授课安排已成功创建！"
 
+
 class TeachingAssignmentUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
     """编辑授课安排"""
     model = TeachingAssignment
@@ -66,6 +95,7 @@ class TeachingAssignmentUpdateView(AdminRequiredMixin, SuccessMessageMixin, gene
     template_name = 'courses/teaching_assignment_form.html'
     success_url = reverse_lazy('courses:teaching-assignment-list')
     success_message = "授课安排已成功更新！"
+
 
 class TeachingAssignmentDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
     """删除授课安排"""
@@ -81,10 +111,11 @@ class TeachingAssignmentDeleteView(AdminRequiredMixin, SuccessMessageMixin, gene
         context['has_grades'] = Grade.objects.filter(teaching_assignment=self.object).exists()
         return context
 
+
 # --- 选课记录管理视图 (管理员视角) ---
 
 class CourseEnrollmentListView(AdminRequiredMixin, generic.ListView):
-    """选课记录列表"""
+    """选课记录列表 - 仅限管理员"""
     model = CourseEnrollment
     template_name = 'courses/course_enrollment_list.html'
     context_object_name = 'enrollments'
@@ -96,6 +127,7 @@ class CourseEnrollmentListView(AdminRequiredMixin, generic.ListView):
             'teaching_assignment__course', 'teaching_assignment__teacher'
         ).order_by('-enrollment_date')
 
+
 class CourseEnrollmentCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.CreateView):
     """创建选课记录"""
     model = CourseEnrollment
@@ -103,6 +135,7 @@ class CourseEnrollmentCreateView(AdminRequiredMixin, SuccessMessageMixin, generi
     template_name = 'courses/course_enrollment_form.html'
     success_url = reverse_lazy('courses:enrollment-list')
     success_message = "选课记录已成功创建！"
+
 
 class CourseEnrollmentUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
     """编辑选课记录"""
@@ -112,12 +145,14 @@ class CourseEnrollmentUpdateView(AdminRequiredMixin, SuccessMessageMixin, generi
     success_url = reverse_lazy('courses:enrollment-list')
     success_message = "选课记录已成功更新！"
 
+
 class CourseEnrollmentDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
     """删除选课记录"""
     model = CourseEnrollment
     template_name = 'courses/course_enrollment_confirm_delete.html'
     success_url = reverse_lazy('courses:enrollment-list')
     success_message = "选课记录已成功删除！"
+
 
 class BulkEnrollmentView(AdminRequiredMixin, View):
     """批量选课"""
@@ -132,7 +167,7 @@ class BulkEnrollmentView(AdminRequiredMixin, View):
             'students': students,
         }
         return render(request, self.template_name, context)
-    
+
     def post(self, request):
         assignment_id = request.POST.get('teaching_assignment')
         student_ids = request.POST.getlist('students')

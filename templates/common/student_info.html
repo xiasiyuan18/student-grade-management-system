@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{{ page_title }}</h1>
+    <div>
+        <!-- 修复：使用正确的 URL 命名空间 -->
+        <a href="{% url 'users:student-profile-update' %}" class="btn btn-primary">
+            <i class="bi bi-pencil"></i> 修改个人信息
+        </a>
+    </div>
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle"></i> {{ error }}
+    </div>
+{% elif student %}
+    <!-- 基本信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-person-circle"></i> 基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>学号：</strong></td>
+                            <td>{{ student.student_id_num }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>姓名：</strong></td>
+                            <td>{{ student.name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>性别：</strong></td>
+                            <td>{{ student.get_gender_display|default:"未设置" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>身份证号：</strong></td>
+                            <td>
+                                {% if student.id_card %}
+                                    {{ student.id_card|slice:":6" }}****{{ student.id_card|slice:"-4:" }}
+                                {% else %}
+                                    未设置
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>出生日期：</strong></td>
+                            <td>{{ student.birth_date|date:"Y-m-d"|default:"未设置" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>联系电话：</strong></td>
+                            <td>{{ student.phone|default:"未设置" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>邮箱：</strong></td>
+                            <td>{{ student.user.email|default:"未设置" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-building"></i> 学籍信息</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>所属院系：</strong></td>
+                            <td>{{ student.department.dept_name }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>专业：</strong></td>
+                            <td>{{ student.major.major_name|default:"未设置" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>年级：</strong></td>
+                            <td>{{ student.grade_year|default:"未设置" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>学位等级：</strong></td>
+                            <td>{{ student.degree_level|default:"未设置" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>已修学分：</strong></td>
+                            <td>{{ student.credits_earned|default:"0" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>宿舍信息：</strong></td>
+                            <td>{{ student.dormitory|default:"未设置" }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 联系信息 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-geo-alt"></i> 联系信息</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>宿舍信息：</strong> {{ student.dormitory|default:"未设置" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>家庭住址：</strong> {{ student.home_address|default:"未设置" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 选课信息 -->
+    {% if enrollments %}
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="bi bi-book"></i> 选课信息</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>课程代码</th>
+                            <th>课程名称</th>
+                            <th>授课教师</th>
+                            <th>学期</th>
+                            <th>学分</th>
+                            <th>选课状态</th>
+                            <th>选课时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for enrollment in enrollments %}
+                        <tr>
+                            <td><code>{{ enrollment.teaching_assignment.course.course_id }}</code></td>
+                            <td>{{ enrollment.teaching_assignment.course.course_name }}</td>
+                            <td>{{ enrollment.teaching_assignment.teacher.name }}</td>
+                            <td>{{ enrollment.teaching_assignment.semester }}</td>
+                            <td>{{ enrollment.teaching_assignment.course.credits }}</td>
+                            <td>
+                                {% if enrollment.status == 'ENROLLED' %}
+                                    <span class="badge bg-success">{{ enrollment.get_status_display }}</span>
+                                {% elif enrollment.status == 'DROPPED' %}
+                                    <span class="badge bg-warning">{{ enrollment.get_status_display }}</span>
+                                {% elif enrollment.status == 'COMPLETED' %}
+                                    <span class="badge bg-info">{{ enrollment.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ enrollment.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ enrollment.enrollment_date|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+{% else %}
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> 
+        <strong>无法获取学生信息</strong>
+        <p class="mb-0 mt-2">您的账户可能没有关联的学生档案，请联系管理员。</p>
+    </div>
+{% endif %}
+{% endblock %}

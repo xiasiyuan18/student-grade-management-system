@@ -29,13 +29,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "users.apps.UsersConfig",
-    "departments.apps.DepartmentsConfig",
-    "courses.apps.CoursesConfig",
-    "grades.apps.GradesConfig",
     "rest_framework",
-    "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
+    "users",
+    "departments",
+    "courses",
+    "grades",
+    "common",  # 添加这一行
 ]
 
 MIDDLEWARE = [
@@ -98,9 +97,9 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTH_USER_MODEL = "users.CustomUser"
 
 # 认证和重定向URL设置 (保留队友在中间定义的版本)
-LOGIN_URL = 'users:login'
-LOGIN_REDIRECT_URL = 'home'
-LOGOUT_REDIRECT_URL = 'users:login'
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'  # 登出后重定向到首页
 
 # Internationalization
 LANGUAGE_CODE = "zh-hans"

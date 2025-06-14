@@ -7,7 +7,9 @@
     <h1 class="h2">课程管理</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         <div class="btn-group me-2">
-            <a href="{% url 'courses:course-create' %}" class="btn btn-primary">新增课程</a>
+            <a href="{% url 'courses:course-create' %}" class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> 新增课程
+            </a>
         </div>
     </div>
 </div>
@@ -30,21 +32,37 @@
                     <th>课程名称</th>
                     <th>所属院系</th>
                     <th>学分</th>
-                    <th>课程性质</th>
+                    <th>学位等级</th>
                     <th>操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for course in courses %}
                 <tr>
-                    <td>{{ course.course_id }}</td>
-                    <td>{{ course.course_name }}</td>
+                    <td><code>{{ course.course_id }}</code></td>
+                    <td><strong>{{ course.course_name }}</strong></td>
                     <td>{{ course.department.dept_name }}</td>
-                    <td>{{ course.credits }}</td>
-                    <td>{{ course.get_degree_level_display|default:"-" }}</td>
                     <td>
-                        <a href="{% url 'courses:course-update' course.course_id %}" class="btn btn-sm btn-info me-2">编辑</a>
-                        <a href="{% url 'courses:course-delete' course.course_id %}" class="btn btn-sm btn-danger">删除</a>
+                        <span class="badge bg-info">{{ course.credits }} 学分</span>
+                    </td>
+                    <td>
+                        {% if course.degree_level %}
+                            <span class="badge bg-secondary">{{ course.get_degree_level_display }}</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'courses:course-update' course.course_id %}" 
+                               class="btn btn-outline-primary" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'courses:course-delete' course.course_id %}" 
+                               class="btn btn-outline-danger" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}
@@ -85,6 +103,7 @@
 {% else %}
     <div class="alert alert-info">
         <i class="bi bi-info-circle"></i> 暂无课程记录。
+        <a href="{% url 'courses:course-create' %}" class="alert-link">立即创建第一个课程</a>
     </div>
 {% endif %}
 {% endblock %}

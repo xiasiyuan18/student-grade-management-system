@@ -6,18 +6,23 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.contrib.auth import get_user_model
 from .forms import TeacherForm, StudentForm, StudentProfileUpdateForm, TeacherProfileUpdateForm, StudentUpdateForm, StudentProfileEditForm
 from .models import Teacher, Student 
-# ✨ 关键修正：从 .forms 文件中导入所有需要的表单类
+from common.mixins import (
+    AdminRequiredMixin, StudentRequiredMixin, 
+    TeacherRequiredMixin, SensitiveInfoMixin
+)
 
 User = get_user_model()
 
-class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    def test_func(self):
-        return self.request.user.is_superuser
+# 管理员功能
+class StudentListView(AdminRequiredMixin, SensitiveInfoMixin, generic.ListView):
+    """学生列表 - 仅限管理员"""
+    model = Student
+    template_name = 'users/student_list.html'
+    context_object_name = 'students'
+    queryset = Student.objects.select_related('user', 'major', 'department').order_by('-user__date_joined')
 
-# =============================================================================
-# 教师管理视图 (管理员视角)
-# =============================================================================
-class TeacherListView(AdminRequiredMixin, generic.ListView):
+class TeacherListView(AdminRequiredMixin, SensitiveInfoMixin, generic.ListView):
+    """教师列表 - 仅限管理员"""
     # ✨ 核心修正 1：查询 User 模型，而不是 Teacher 模型
     model = User
     template_name = 'users/teacher_list.html'
@@ -107,12 +112,6 @@ class TeacherDeleteView(AdminRequiredMixin, generic.DeleteView):
 # =============================================================================
 # 学生管理视图 (管理员视角)
 # =============================================================================
-class StudentListView(AdminRequiredMixin, generic.ListView):
-    model = Student
-    template_name = 'users/student_list.html'
-    context_object_name = 'students'
-    queryset = Student.objects.select_related('user', 'major', 'department').order_by('-user__date_joined')
-
 class StudentCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.FormView):
     form_class = StudentForm # 现在可以正确找到 StudentForm
     template_name = 'users/student_form.html'
@@ -149,26 +148,31 @@ class StudentProfileEditView(AdminRequiredMixin, SuccessMessageMixin, generic.Up
 # =============================================================================
 # 学生个人中心 (学生视角)
 # =============================================================================
-class StudentProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, generic.UpdateView):
-    # ✨ 注意：模型是 Student
+class StudentProfileUpdateView(StudentRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    """学生修改自己个人信息 - 仅限学生本人"""
     model = Student
     form_class = StudentProfileUpdateForm
-    template_name = 'users/student_profile_form.html' # ✨ 使用一个学生专用的模板
-    success_url = reverse_lazy('home')
-    success_message = "你的个人档案已成功更新！"
+    template_name = 'users/student_profile_update.html'
+    success_url = reverse_lazy('common:student-info')
+    success_message = "您的个人信息已成功更新！"
 
     def get_object(self, queryset=None):
         """
-        这个方法会返回当前登录用户所关联的那个 Student 档案对象。
+        返回当前登录用户所关联的学生档案对象。
         """
-        # 尝试获取当前登录用户的学生档案，如果不存在则会返回404错误
         return get_object_or_404(Student, user=self.request.user)
 
     def test_func(self):
         """
         确保只有角色为'STUDENT'的用户才能访问。
         """
-        return self.request.user.role == User.Role.STUDENT
+        return (hasattr(self.request.user, 'role') and 
+                self.request.user.role == User.Role.STUDENT)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '修改个人信息'
+        return context
 
 class StudentDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
     model = User
@@ -179,10 +183,9 @@ class StudentDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteV
 # =============================================================================
 # 教师个人中心 (教师视角)
 # =============================================================================
-class TeacherProfileUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, generic.UpdateView):
-    # 我们要更新的是 User 模型
+class TeacherProfileUpdateView(TeacherRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    """教师修改自己个人信息 - 仅限教师本人"""
     model = User
-    # 使用我们专门创建的个人信息表单
     form_class = TeacherProfileUpdateForm
     template_name = 'users/user_profile_form.html'  # 我们将创建一个通用的个人信息模板
     success_url = reverse_lazy('home') # 成功后跳转回主页

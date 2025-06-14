@@ -1,4 +1,4 @@
-# courses/frontend_urls.py (最终完整版)
+# courses/frontend_urls.py (完整版)
 
 from django.urls import path
 from . import frontend_views
@@ -6,6 +6,12 @@ from . import frontend_views
 app_name = 'courses'
 
 urlpatterns = [
+    # 课程管理
+    path('', frontend_views.CourseListView.as_view(), name='course-list'),
+    path('create/', frontend_views.CourseCreateView.as_view(), name='course-create'),
+    path('<str:pk>/update/', frontend_views.CourseUpdateView.as_view(), name='course-update'),
+    path('<str:pk>/delete/', frontend_views.CourseDeleteView.as_view(), name='course-delete'),
+    
     # 授课安排管理
     path('teaching-assignments/', frontend_views.TeachingAssignmentListView.as_view(), name='teaching-assignment-list'),
     path('teaching-assignments/create/', frontend_views.TeachingAssignmentCreateView.as_view(), name='teaching-assignment-create'),

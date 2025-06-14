@@ -121,20 +121,37 @@ class StudentForm(forms.Form):
         return user
 
 
-# 学生个人档案更新表单
+# 学生个人档案更新表单（学生自己使用）
 class StudentProfileUpdateForm(forms.ModelForm):
+    """学生修改自己个人信息的表单"""
     class Meta:
         model = Student
-        fields = ('phone', 'dormitory', 'home_address') 
+        # 学生只能修改这些非敏感信息
+        fields = ['phone', 'dormitory', 'home_address'] 
         labels = {
-            'phone': '我的联系电话',
-            'dormitory': '我的宿舍信息',
-            'home_address': '我的家庭地址',
+            'phone': '联系电话',
+            'dormitory': '宿舍信息',
+            'home_address': '家庭地址',
         }
         widgets = {
-            'phone': forms.TextInput(attrs={'class': 'form-control'}),
-            'dormitory': forms.TextInput(attrs={'class': 'form-control'}),
-            'home_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '请输入您的联系电话'
+            }),
+            'dormitory': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '如：1号楼201室'
+            }),
+            'home_address': forms.Textarea(attrs={
+                'class': 'form-control', 
+                'rows': 3,
+                'placeholder': '请输入您的家庭详细地址'
+            }),
+        }
+        help_texts = {
+            'phone': '用于紧急联系和通知',
+            'dormitory': '您的宿舍房间号',
+            'home_address': '您的家庭详细住址',
         }
 
 

@@ -1,86 +1,101 @@
 {% extends 'base.html' %}
-{% load static %} 
 
-{% block title %}院系列表 - 学生成绩管理系统{% endblock %}
+{% block title %}院系管理{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>院系信息列表</h2>
-        {% if user.is_staff %}
-        <div>
-            {# ✨ 新增的“管理专业”按钮，链接到专业列表页 ✨ #}
-            <a href="{% url 'departments:major-list' %}" class="btn btn-info me-2">
-                <i class="bi bi-diagram-3"></i> 管理专业
-            </a>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">院系管理</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <div class="btn-group me-2">
             <a href="{% url 'departments:department-create' %}" class="btn btn-primary">
-                <i class="bi bi-plus-circle"></i> 添加新院系
+                <i class="bi bi-plus-lg"></i> 新增院系
             </a>
         </div>
-        {% endif %}
     </div>
+</div>
 
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
-
+{% if departments %}
     <div class="table-responsive">
         <table class="table table-striped table-hover">
-            <thead class="table-light">
+            <thead class="table-dark">
                 <tr>
-                    {# ✨ 关键修正 #1：将表头修改为与模型匹配的字段 ✨ #}
-                    <th scope="col"># (ID)</th>
-                    <th scope="col">院系名称</th>
-                    <th scope="col">院系代码</th>
-                    <th scope="col">办公室地点</th>
-                    <th scope="col">联系电话</th>
-                    {% if user.is_staff %} <th scope="col">操作</th> {% endif %}
+                    <th>ID</th>
+                    <th>院系名称</th>
+                    <th>描述</th>
+                    <th>专业数量</th>
+                    <th>操作</th>
                 </tr>
             </thead>
             <tbody>
                 {% for department in departments %}
                 <tr>
-                    {# ✨ 关键修正 #2：显示模型中真实存在的字段 ✨ #}
-                    <th scope="row">{{ department.id }}</th>
-                    <td>{{ department.dept_name }}</td>
-                    <td>{{ department.dept_code }}</td>
-                    <td>{{ department.office_location|default_if_none:"未提供" }}</td>
-                    <td>{{ department.phone_number|default_if_none:"-" }}</td>
-                    
-                    {% if user.is_staff %}
+                    <td><code>{{ department.pk }}</code></td>
+                    <td><strong>{{ department.dept_name }}</strong></td>
+                    <td>{{ department.description|default:"--"|truncatechars:50 }}</td>
                     <td>
-                        <a href="{% url 'departments:department-update' pk=department.pk %}" class="btn btn-sm btn-outline-secondary me-1">
-                            <i class="bi bi-pencil-square"></i> 编辑
-                        </a>
-                        <a href="{% url 'departments:department-delete' pk=department.pk %}" class="btn btn-sm btn-outline-danger">
-                            <i class="bi bi-trash"></i> 删除
-                        </a>
+                        <span class="badge bg-info">{{ department.major_set.count }} 个专业</span>
                     </td>
-                    {% endif %}
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="6" class="text-center">暂无院系信息。</td>
+                    <td>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="{% url 'departments:department-update' department.pk %}" 
+                               class="btn btn-outline-primary" title="编辑">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'departments:department-delete' department.pk %}" 
+                               class="btn btn-outline-danger" title="删除">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
 
-    {# 分页功能保持不变 #}
+    <!-- 分页 -->
     {% if is_paginated %}
         <nav aria-label="Page navigation">
             <ul class="pagination justify-content-center">
-                ... (您的分页代码) ...
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">首页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        第 {{ page_obj.number }} 页，共 {{ page_obj.paginator.num_pages }} 页
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">末页</a>
+                    </li>
+                {% endif %}
             </ul>
         </nav>
     {% endif %}
-
-</div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 暂无院系记录。
+        <a href="{% url 'departments:department-create' %}" class="alert-link">立即创建第一个院系</a>
+    </div>
+{% endif %}
 {% endblock %}

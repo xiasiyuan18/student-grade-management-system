@@ -1,46 +1,48 @@
 {% extends 'base.html' %}
 
-{% block title %}
-  我的课程 - 成绩管理
-{% endblock %}
+{% block title %}{{ page_title }}{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2">我的课程列表</h1>
-            </div>
-
-            <p class="text-muted">请选择您希望管理成绩的课程。</p>
-
-            {% if teaching_assignments %}
-                <div class="row">
-                    {% for assignment in teaching_assignments %}
-                        <div class="col-md-6 col-lg-4 mb-3">
-                            <div class="card">
-                                <div class="card-body">
-                                    <h5 class="card-title">{{ assignment.course.course_name }}</h5>
-                                    <p class="card-text">
-                                        <strong>课程代码:</strong> {{ assignment.course.course_id }}<br>
-                                        <strong>学期:</strong> {{ assignment.semester }}<br>
-                                        <strong>学分:</strong> {{ assignment.course.credits }}
-                                    </p>
-                                    <a href="{% url 'grades:grade_entry' %}?assignment_id={{ assignment.pk }}" 
-                                       class="btn btn-primary">
-                                        <i class="bi bi-clipboard-data"></i> 管理成绩
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle"></i> 系统尚未分配任何课程给您。
-                </div>
-            {% endif %}
-        </main>
-    </div>
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{{ page_title }}</h1>
 </div>
+
+{% if assignments %}
+    <div class="row">
+        {% for assignment in assignments %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">{{ assignment.course.course_name }}</h5>
+                    <small class="text-muted">{{ assignment.course.course_id }}</small>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        <strong>学期：</strong>{{ assignment.semester }}<br>
+                        <strong>学分：</strong>{{ assignment.course.credits }}<br>
+                        <strong>院系：</strong>{{ assignment.course.department.dept_name }}
+                    </p>
+                    
+                    <!-- 修复：使用正确的URL参数格式 -->
+                    <a href="{% url 'grades:grade-entry' assignment.id %}" class="btn btn-primary">
+                        <i class="bi bi-pencil-square"></i> 录入成绩
+                    </a>
+                </div>
+                <div class="card-footer text-muted">
+                    <small>
+                        选课学生：
+                        {% with assignment.courseenrollment_set.filter:status='ENROLLED'.count as enrolled_count %}
+                            {{ enrolled_count }} 人
+                        {% endwith %}
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> 您当前没有授课安排。请联系管理员分配课程。
+    </div>
+{% endif %}
 {% endblock %}

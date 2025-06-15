@@ -1,5 +1,6 @@
 # users/frontend_views.py
-
+import pandas as pd
+from django.http import HttpResponse
 from django.urls import reverse, reverse_lazy
 from django.shortcuts import get_object_or_404
 from django.views import generic
@@ -204,3 +205,34 @@ class TeacherProfileUpdateView(TeacherRequiredMixin, SuccessMessageMixin, generi
 
     def get_object(self, queryset=None):
         return self.request.user
+
+class StudentExportExcelView(AdminRequiredMixin, generic.View):
+    def get(self, request, *args, **kwargs):
+        # 获取所有学生数据
+        students = Student.objects.select_related('user', 'major', 'department').all()
+        
+        # 准备数据
+        data = {
+            '学号': [s.student_id_num for s in students],
+            '姓名': [s.name for s in students],
+            '登录用户名': [s.user.username for s in students],
+            '性别': [s.gender for s in students],
+            '院系': [s.department.dept_name for s in students],
+            '专业': [s.major.major_name for s in students],
+            '入学年份': [s.grade_year for s in students],
+            '联系电话': [s.phone for s in students],
+        }
+        
+        df = pd.DataFrame(data)
+        
+        # 创建一个 HTTP 响应，内容类型为 Excel
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+        # 设置文件名
+        response['Content-Disposition'] = 'attachment; filename="students_export.xlsx"'
+        
+        # 将 DataFrame 写入响应
+        df.to_excel(response, index=False, engine='openpyxl')
+        
+        return response

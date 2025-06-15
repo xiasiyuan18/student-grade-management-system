@@ -83,37 +83,32 @@ class GradeEntryView(TeacherRequiredMixin, View):
     template_name = 'grades/grade_entry_form.html'
     
     def get(self, request, assignment_id):
-        """显示成绩录入页面"""
-        # 验证教师只能访问自己的教学安排
         assignment = get_object_or_404(TeachingAssignment, pk=assignment_id)
         
-        # 权限检查：确保是当前教师的课程
         try:
-            teacher_profile = request.user.teacher_profile
-            if assignment.teacher != teacher_profile:
+            if assignment.teacher != request.user.teacher_profile:
                 messages.error(request, "您只能录入自己教授课程的成绩")
                 return redirect('grades:teacher-courses')
         except AttributeError:
             messages.error(request, "您没有教师权限")
             return redirect('home')
         
-        # 获取选修此课程的学生列表
         enrollments = CourseEnrollment.objects.filter(
             teaching_assignment=assignment,
             status='ENROLLED'
         ).select_related('student__user', 'student__department').order_by('student__student_id_num')
         
         # 获取已有成绩记录
-        existing_grades = {}
-        grades = Grade.objects.filter(teaching_assignment=assignment)
-        for grade in grades:
-            existing_grades[grade.student.id] = grade
+        existing_grades = {
+            grade.student.pk: grade for grade in Grade.objects.filter(teaching_assignment=assignment)
+        }
         
         # 为每个学生准备数据
         student_data = []
         for enrollment in enrollments:
             student = enrollment.student
-            existing_grade = existing_grades.get(student.id)
+            # ✨ 关键：将 student.id 修正为 student.pk
+            existing_grade = existing_grades.get(student.pk)
             student_data.append({
                 'student': student,
                 'enrollment': enrollment,
@@ -129,69 +124,50 @@ class GradeEntryView(TeacherRequiredMixin, View):
         return render(request, self.template_name, context)
 
     def post(self, request, assignment_id):
-        """处理成绩录入提交"""
-        # 验证教师只能修改自己教授课程的成绩
         assignment = get_object_or_404(TeachingAssignment, pk=assignment_id)
         
-        # 权限检查：确保是当前教师的课程
         try:
-            teacher_profile = request.user.teacher_profile
-            if assignment.teacher != teacher_profile:
-                messages.error(request, "您只能录入自己教授课程的成绩")
+            if assignment.teacher != request.user.teacher_profile:
+                messages.error(request, "权限错误")
                 return redirect('grades:teacher-courses')
         except AttributeError:
-            messages.error(request, "您没有教师权限")
             return redirect('home')
         
-        # 处理成绩数据
         updated_count = 0
         error_count = 0
         
         for key, value in request.POST.items():
-            if key.startswith('score_') and value.strip(): #<-- 修改: 'grade_' -> 'score_' 保持一致
+            if key.startswith('score_') and value.strip():
                 try:
-                    student_id = int(key.replace('score_', '')) #<-- 修改: 'grade_' -> 'score_'
-                    score = Decimal(value) #<-- 修改: 使用 Decimal
+                    # student_pk 就是学生的主键 (user_id)
+                    student_pk = int(key.replace('score_', ''))
+                    score_val = Decimal(value)
                     
-                    # 验证分数范围
-                    if not (0 <= score <= 100):
+                    if not (0 <= score_val <= 100):
                         error_count += 1
                         continue
                     
-                    # 获取学生对象
-                    student = get_object_or_404(Student, pk=student_id)
+                    # ✨ 关键：使用 pk 来获取学生对象
+                    student = get_object_or_404(Student, pk=student_pk)
                     
-                    # 验证学生是否选修了此课程
-                    if not CourseEnrollment.objects.filter(
-                        student=student, 
-                        teaching_assignment=assignment,
-                        status='ENROLLED'
-                    ).exists():
+                    if not CourseEnrollment.objects.filter(student=student, teaching_assignment=assignment, status='ENROLLED').exists():
                         error_count += 1
                         continue
                     
-                    # 创建或更新成绩记录
                     grade, created = Grade.objects.update_or_create(
                         student=student,
                         teaching_assignment=assignment,
-                        defaults={
-                            'score': score,
-                            'last_modified_by': request.user # 记录修改人
-                        }
+                        defaults={'score': score_val, 'last_modified_by': request.user}
                     )
-                    
                     updated_count += 1
-                    
                 except (ValueError, Student.DoesNotExist):
                     error_count += 1
                     continue
         
-        # 显示结果消息
         if updated_count > 0:
-            messages.success(request, f"成功录入/更新了 {updated_count} 条成绩记录")
-        
+            messages.success(request, f"成功录入/更新了 {updated_count} 条成绩记录。")
         if error_count > 0:
-            messages.warning(request, f"有 {error_count} 条记录录入失败，请检查数据格式")
+            messages.warning(request, f"有 {error_count} 条记录因数据无效或权限问题而录入失败。")
         
         return redirect('grades:grade-entry', assignment_id=assignment_id)
 

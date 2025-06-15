@@ -25,7 +25,8 @@ urlpatterns = [
     path('students/<int:pk>/update/', frontend_views.StudentUpdateView.as_view(), name='student-update'),
     path('students/<int:pk>/profile-edit/', frontend_views.StudentProfileEditView.as_view(), name='student-profile-edit'),
     path('students/<int:pk>/delete/', frontend_views.StudentDeleteView.as_view(), name='student-delete'),
-    
+    path('students/export/excel/', frontend_views.StudentExportExcelView.as_view(), name='student-export-excel'),
+
     # --- 个人中心 (用户自己视角) ---
     # 教师修改自己的个人信息
     path('profile/teacher/', frontend_views.TeacherProfileUpdateView.as_view(), name='teacher-profile-update'),

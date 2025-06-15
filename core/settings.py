@@ -36,7 +36,8 @@ INSTALLED_APPS = [
     "grades",
     "common", 
     'crispy_forms',
-    'crispy_bootstrap5', # 添加这一行
+    'crispy_bootstrap5',
+    'utils', # 添加这一行
 ]
 
 MIDDLEWARE = [

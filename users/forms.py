@@ -63,7 +63,9 @@ class StudentCreateForm(forms.Form):
             first_name=cleaned_data['name'][:30],
             role="STUDENT"
         )
-        Student.objects.create(user=user, **{k: v for k, v in cleaned_data.items() if k not in ['username', 'password']})
+        # 移除 cleaned_data 中不属于 Student 模型的字段
+        student_data = {k: v for k, v in cleaned_data.items() if hasattr(Student, k)}
+        Student.objects.create(user=user, **student_data)
         return user
 
 
@@ -125,7 +127,7 @@ class TeacherUpdateForm(forms.ModelForm):
         if self.instance and self.instance.pk:
             self.fields['username'].initial = self.instance.user.username
             self.fields['email'].initial = self.instance.user.email
-        self.fields.keyOrder = ['username', 'email', 'name', 'teacher_id_num', 'department']
+        self.order_fields = ['username', 'email', 'name', 'teacher_id_num', 'department']
 
     @transaction.atomic
     def save(self, commit=True):

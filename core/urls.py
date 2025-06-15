@@ -24,6 +24,7 @@ urlpatterns = [
         path('departments/', include('departments.frontend_urls', namespace='departments')),  # 确保这行存在
         path('courses/', include('courses.frontend_urls', namespace='courses')),
         path('grades/', include('grades.frontend_urls', namespace='grades')),
+        path('utils/', include('utils.urls', namespace='utils')),
     ])),
 
     # ✨ 关键修复：添加通用查询模块的 URL

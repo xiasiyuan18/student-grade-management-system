@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">{{ page_title }}</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'users:student-list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> 返回学生列表
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">操作说明</h5>
+            <p>请下载模板文件，按照规定的格式填写学生信息，然后上传文件进行批量导入。</p>
+            
+            <div class="alert alert-info">
+                <strong>模板列名 (必填项加*):</strong>
+                <ul>
+                    <li><strong>*username</strong> (登录用户名)</li>
+                    <li><strong>*password</strong> (初始密码)</li>
+                    <li><strong>*name</strong> (学生姓名)</li>
+                    <li><strong>*student_id_num</strong> (学号)</li>
+                    <li><strong>*department_name</strong> (院系全称, 如 "计算机科学与技术学院")</li>
+                    <li><strong>*major_name</strong> (专业全称, 如 "软件工程")</li>
+                    <li>id_card (身份证号, 可选)</li>
+                    <li>gender (性别, '男'或'女', 可选)</li>
+                    <li>birth_date (出生日期, 格式 YYYY-MM-DD, 可选)</li>
+                    <li>phone (联系电话, 可选)</li>
+                </ul>
+            </div>
+
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary mt-3">
+                    <i class="bi bi-upload"></i> 上传并导入
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

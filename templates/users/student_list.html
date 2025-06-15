@@ -5,6 +5,14 @@
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">学生管理</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
+            {# ✨ 新增：批量导入按钮 #}
+            <a href="{% url 'utils:student-bulk-import' %}" class="btn btn-sm btn-outline-info me-2">
+                <i class="bi bi-cloud-upload"></i> 批量导入学生
+            </a>
+            {# ✨ 新增：导出为 Excel 按钮 #}
+            <a href="{% url 'users:student-export-excel' %}" class="btn btn-sm btn-outline-success me-2">
+                <i class="bi bi-file-earmark-excel"></i> 导出为 Excel
+            </a>
             <a href="{% url 'users:student-create' %}" class="btn btn-success">
                 <i class="bi bi-person-plus-fill"></i> 添加新学生
             </a>

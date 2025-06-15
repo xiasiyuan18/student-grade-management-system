@@ -16,8 +16,8 @@
         {% endfor %}
     {% endif %}
 
-    {# ✨ 关键: 数据看板模块 #}
     {% if show_dashboard %}
+    <!-- 顶部统计卡片 -->
     <div class="row">
         <div class="col-md-4 col-xl-3 mb-4">
             <div class="card shadow border-start-primary py-2">
@@ -72,11 +72,132 @@
             </div>
         </div>
     </div>
+
+    <!-- 数据可视化图表区域 -->
+    <div class="row">
+        <!-- 院系学生人数分布图 -->
+        <div class="col-xl-8 col-lg-7">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">各院系学生人数分布</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area" style="height: 320px;">
+                        <canvas id="departmentStudentChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 学生性别比例图 -->
+        <div class="col-xl-4 col-lg-5">
+            <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">全校学生性别比例</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-pie pt-4" style="height: 320px;">
+                        <canvas id="genderPieChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 热门课程成绩分布 -->
+        <div class="col-12">
+             <div class="card shadow mb-4">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">{{ grade_chart_title|default:"成绩分布" }}</h6>
+                </div>
+                <div class="card-body">
+                    {% if grade_chart_data %}
+                    <div class="chart-pie pt-4" style="height: 320px;">
+                        <canvas id="gradePieChart"></canvas>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">暂无足够成绩数据以生成图表。</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
     {% else %}
         <p class="lead">您好, {{ request.user.student_profile.name | default:request.user.username }}！请通过左侧导航菜单开始操作。</p>
     {% endif %}
 
-    {# 您可以保留或添加其他主页内容 #}
-
 </div>
 {% endblock content %}
+
+{% block extra_js %}
+{# ✨ 关键：使用 json_script 安全地传递数据 #}
+{{ dept_chart_labels|json_script:"dept-labels" }}
+{{ dept_chart_data|json_script:"dept-data" }}
+{{ gender_chart_labels|json_script:"gender-labels" }}
+{{ gender_chart_data|json_script:"gender-data" }}
+{% if grade_chart_data %}
+{{ grade_chart_labels|json_script:"grade-labels" }}
+{{ grade_chart_data|json_script:"grade-data" }}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // 封装一个函数来获取json_script中的数据
+    function getChartData(id) {
+        const element = document.getElementById(id);
+        if (element) {
+            return JSON.parse(element.textContent);
+        }
+        return null;
+    }
+
+    // 1. 院系学生人数柱状图
+    const deptLabels = getChartData('dept-labels');
+    const deptData = getChartData('dept-data');
+    const deptCtx = document.getElementById('departmentStudentChart');
+    if (deptCtx && deptLabels && deptData) {
+        new Chart(deptCtx, {
+            type: 'bar',
+            data: {
+                labels: deptLabels,
+                datasets: [{ label: '学生人数', data: deptData, backgroundColor: 'rgba(78, 115, 223, 0.8)' }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
+        });
+    }
+
+    // 2. 学生性别比例饼图
+    const genderLabels = getChartData('gender-labels');
+    const genderData = getChartData('gender-data');
+    const genderCtx = document.getElementById('genderPieChart');
+    if (genderCtx && genderLabels && genderData) {
+        new Chart(genderCtx, {
+            type: 'pie',
+            data: {
+                labels: genderLabels,
+                datasets: [{ data: genderData, backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // 3. 热门课程成绩分布饼图
+    const gradeLabels = getChartData('grade-labels');
+    const gradeData = getChartData('grade-data');
+    const gradeCtx = document.getElementById('gradePieChart');
+    if (gradeCtx && gradeLabels && gradeData) {
+        new Chart(gradeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: gradeLabels,
+                datasets: [{ data: gradeData, backgroundColor: ['#1cc88a', '#4e73df', '#36b9cc', '#f6c23e', '#e74a3b'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+});
+</script>
+{% endblock extra_js %}

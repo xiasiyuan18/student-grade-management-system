@@ -80,9 +80,10 @@ DATABASES = {
         "PASSWORD": "xiasiyuan18",
         "HOST": "localhost",
         "PORT": "3306",
+           # ✨ 关键：在这里添加 OPTIONS 配置，强制使用 UTF-8 编码
         "OPTIONS": {
-            "init_command": "SET sql_mode='STRICT_TRANS_TABLES'",
             "charset": "utf8mb4",
+            "init_command": "SET NAMES utf8mb4",
         },
     }
 }
@@ -147,3 +148,9 @@ SIMPLE_JWT = {
 }
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake", # 只是一个名字，可以随意取
+    }
+}

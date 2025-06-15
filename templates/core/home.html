@@ -1,33 +1,82 @@
-{% extends 'base.html' %} {# 继承基础模板 #}
-{% block title %}主页 / 仪表盘{% endblock %}
+{% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="jumbotron text-center bg-light p-5 rounded">
-    <h1 class="display-4">欢迎来到学生成绩管理系统！</h1>
-    <p class="lead">
-        {% if user.is_authenticated %}
-            您好，{{ user.username }}！这里是您的仪表盘。
-        {% else %}
-            请登录以访问更多功能。
-        {% endif %}
-    </p>
-    <hr class="my-4">
-    <p>
-        {% if user.is_authenticated %}
-            {# 根据文档，这里是初步导航，指向核心模块列表页的占位链接 #}
-            <p>您可以访问以下模块：</p>
-            <ul class="list-unstyled">
-                <li><a href="#" class="btn btn-outline-primary m-1">院系管理 (A)</a></li>
-                <li><a href="#" class="btn btn-outline-primary m-1">专业管理 (A)</a></li>
-                <li><a href="#" class="btn btn-outline-primary m-1">学生管理 (B)</a></li>
-                <li><a href="#" class="btn btn-outline-primary m-1">教师管理 (D)</a></li>
-                <li><a href="{% url 'courses:course_list' %}" class="btn btn-outline-primary m-1">课程管理 (C)</a></li> {# 示例：指向课程列表 #}
-                <li><a href="{% url 'grades:grade_entry' %}" class="btn btn-outline-primary m-1">成绩录入 (C)</a></li> {# 示例：指向成绩录入 #}
-                {# 后续会根据实际URL更新这些 #}
-            </ul>
-        {% else %}
-            <a class="btn btn-primary btn-lg" href="{% url 'users:login' %}" role="button">立即登录</a>
-        {% endif %}
-    </p>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">{{ page_title }}</h1>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {# ✨ 关键: 数据看板模块 #}
+    {% if show_dashboard %}
+    <div class="row">
+        <div class="col-md-4 col-xl-3 mb-4">
+            <div class="card shadow border-start-primary py-2">
+                <div class="card-body">
+                    <div class="row align-items-center no-gutters">
+                        <div class="col me-2">
+                            <div class="text-uppercase text-primary fw-bold text-xs mb-1"><span>总学生数</span></div>
+                            <div class="text-dark fw-bold h5 mb-0"><span>{{ student_count }}</span></div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-user-graduate fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-3 mb-4">
+            <div class="card shadow border-start-success py-2">
+                <div class="card-body">
+                    <div class="row align-items-center no-gutters">
+                        <div class="col me-2">
+                            <div class="text-uppercase text-success fw-bold text-xs mb-1"><span>总教师数</span></div>
+                            <div class="text-dark fw-bold h5 mb-0"><span>{{ teacher_count }}</span></div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-chalkboard-teacher fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-3 mb-4">
+            <div class="card shadow border-start-info py-2">
+                <div class="card-body">
+                    <div class="row align-items-center no-gutters">
+                        <div class="col me-2">
+                            <div class="text-uppercase text-info fw-bold text-xs mb-1"><span>总课程数</span></div>
+                            <div class="text-dark fw-bold h5 mb-0"><span>{{ course_count }}</span></div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-book-open fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 col-xl-3 mb-4">
+            <div class="card shadow border-start-warning py-2">
+                <div class="card-body">
+                    <div class="row align-items-center no-gutters">
+                        <div class="col me-2">
+                            <div class="text-uppercase text-warning fw-bold text-xs mb-1"><span>总院系数</span></div>
+                            <div class="text-dark fw-bold h5 mb-0"><span>{{ department_count }}</span></div>
+                        </div>
+                        <div class="col-auto"><i class="fas fa-building fa-2x text-gray-300"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+        <p class="lead">您好, {{ request.user.student_profile.name | default:request.user.username }}！请通过左侧导航菜单开始操作。</p>
+    {% endif %}
+
+    {# 您可以保留或添加其他主页内容 #}
+
 </div>
-{% endblock %}
+{% endblock content %}

@@ -180,6 +180,12 @@
                                     <i class="bi bi-person align-text-bottom"></i> 学生管理
                                 </a>
                             </li>
+                            {# ✨ 关键: 添加全局成绩管理入口 #}
+                            <li class="nav-item">
+                                <a class="nav-link {% if 'grades/admin' in request.path %}active{% endif %}" href="{% url 'grades:admin-grade-list' %}">
+                                    <i class="bi bi-table align-text-bottom"></i> 全局成绩管理
+                                </a>
+                            </li>
                             {% endif %}
 
                         </ul>

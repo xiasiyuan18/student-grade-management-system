@@ -9,8 +9,6 @@ from django.utils.translation import gettext_lazy as _
 
 
 # --- 1. 自定义用户管理器 (CustomUserManager) ---
-# 对于继承自 AbstractUser 的模型，通常可以不自定义 Manager，除非有非常特殊的创建逻辑。
-# 如果需要，可以像这样定义：
 class CustomUserManager(BaseUserManager):
     """
     自定义用户管理器，用于 AUTH_USER_MODEL = CustomUser
@@ -34,9 +32,11 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, username, email=None, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        
+        # ✨ 核心修正：强制将超级用户的角色设置为 ADMIN
         extra_fields.setdefault(
             "role", CustomUser.Role.ADMIN
-        )  # 超级用户默认为 ADMIN 角色
+        )
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError(_("超级用户必须将 is_staff 设置为 True。"))
@@ -59,26 +59,17 @@ class CustomUser(AbstractUser):
         TEACHER = "TEACHER", _("教师")
         ADMIN = "ADMIN", _("管理员")
 
-    # AbstractUser 已经包含了:
-    # username, first_name, last_name, email, password,
-    # groups, user_permissions,
-    # is_staff, is_active, is_superuser,
-    # last_login, date_joined
-
     role = models.CharField(
         _("角色"),
         max_length=10,
         choices=Role.choices,
-        default=Role.STUDENT,  # 可以根据注册逻辑设置默认角色
+        default=Role.STUDENT,  # 新建用户的默认角色是学生
         help_text=_("用户账户的角色类型"),
     )
 
-    # 如果你想用 email 作为登录凭证，可以在 Meta 中设置 USERNAME_FIELD = 'email'
-    # 并将 username 字段的 unique=False, null=True, blank=True （或者直接移除 username 如果不需要）
-    # REQUIRED_FIELDS 也要相应调整。
-    # 但通常保留 username 用于登录，email 用于通知等，是一个不错的选择。
-
-    # objects = CustomUserManager() # 只有在你定义了上面的 CustomUserManager 并且想用它时才取消注释
+    # ✨ 关键：将模型与我们上面定义的管理器关联起来
+    # 之前这里是被注释掉的，现在我们正式启用它
+    objects = CustomUserManager()
 
     def __str__(self):
         return self.username
@@ -88,7 +79,8 @@ class CustomUser(AbstractUser):
         """获取学生档案"""
         if self.role == self.Role.STUDENT:
             try:
-                return self.student
+                # 假设 related_name 是 'student_profile'
+                return self.student_profile
             except Student.DoesNotExist:
                 return None
         return None
@@ -98,7 +90,8 @@ class CustomUser(AbstractUser):
         """获取教师档案"""
         if self.role == self.Role.TEACHER:
             try:
-                return self.teacher
+                # 假设 related_name 是 'teacher_profile'
+                return self.teacher_profile
             except Teacher.DoesNotExist:
                 return None
         return None
@@ -128,8 +121,6 @@ class Student(models.Model):
         unique=True,
         help_text=_("学生的唯一学号，不同于登录用户名"),
     )
-    # 如果 CustomUser 中已有 first_name, last_name，这里的 name 可以考虑是否需要
-    # 如果需要独立的姓名，可以保留；否则可以通过 user.get_full_name() 获取
     name = models.CharField(
         verbose_name=_("姓名"),
         max_length=100,
@@ -172,7 +163,7 @@ class Student(models.Model):
 
     major = models.ForeignKey(
         "departments.Major",
-        on_delete=models.PROTECT,  # 或 SET_NULL, 根据业务逻辑
+        on_delete=models.PROTECT,
         verbose_name=_("专业"),
         null=False,
         blank=False,
@@ -180,7 +171,7 @@ class Student(models.Model):
     )
     department = models.ForeignKey(
         "departments.Department",
-        on_delete=models.PROTECT,  # 或 SET_NULL
+        on_delete=models.PROTECT,
         verbose_name=_("主修院系"),
         null=False,
         blank=False,
@@ -229,14 +220,12 @@ class Teacher(models.Model):
         related_name="teacher_profile",
         verbose_name=_("关联用户账户"),
     )
-    teacher_id_num = models.CharField(  # 工号，作为业务标识符，确保唯一
+    teacher_id_num = models.CharField(
         verbose_name=_("教师工号"),
         max_length=50,
         unique=True,
         help_text=_("教师的唯一工号，不同于登录用户名"),
     )
-    # name 可以使用 CustomUser 的 first_name, last_name
-    # 如果需要独立的姓名，可以保留；否则可以通过 user.get_full_name() 获取
     name = models.CharField(
         verbose_name=_("教师姓名"),
         max_length=100,
@@ -247,10 +236,8 @@ class Teacher(models.Model):
         "departments.Department",
         on_delete=models.PROTECT,
         verbose_name=_("所属院系"),
-        # null=False, blank=False, # 如果教师必须属于一个院系
         help_text=_("教师所属的行政院系"),
     )
-    # is_active, is_staff, date_joined 等信息由 CustomUser 管理
 
     def __str__(self):
         return f"{self.name or self.user.username} (工号: {self.teacher_id_num})"

@@ -6,6 +6,8 @@ from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.messages.views import SuccessMessageMixin
+from django.db.models import ProtectedError # 导入错误类型
+
 
 from .models import Department, Major
 from .forms import DepartmentForm, MajorForm
@@ -63,18 +65,24 @@ class DepartmentUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.Upda
     success_message = "院系 '%(dept_name)s' 已成功更新！"
 
 
-class DepartmentDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
-    """删除院系"""
+class DepartmentDeleteView(AdminRequiredMixin, generic.DeleteView):
     model = Department
     template_name = 'departments/department_confirm_delete.html'
     success_url = reverse_lazy('departments:department-list')
-    success_message = "院系已成功删除！"
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        # 检查是否有相关数据
-        context['has_majors'] = Major.objects.filter(department=self.object).exists()
-        return context
+    success_message = "院系已成功删除。"
+    
+    # ✨ 关键：重写 post 方法以捕获 ProtectedError
+    def post(self, request, *args, **kwargs):
+        try:
+            # 尝试调用父类的 delete 方法
+            response = self.delete(request, *args, **kwargs)
+            messages.success(self.request, self.success_message)
+            return response
+        except ProtectedError:
+            # 捕获到错误，说明有关联对象
+            messages.error(request, f"无法删除该院系，因为它下面还包含一个或多个专业或教师。请先处理关联数据。")
+            # 重定向回删除确认页面
+            return redirect(request.META.get('HTTP_REFERER', reverse_lazy('departments:department-list')))
 
 
 # --- 专业管理视图 (管理员) ---
@@ -108,9 +116,18 @@ class MajorUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateVie
     success_message = "专业 '%(major_name)s' 已成功更新！"
 
 
-class MajorDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
-    """删除专业"""
+class MajorDeleteView(AdminRequiredMixin, generic.DeleteView):
     model = Major
     template_name = 'departments/major_confirm_delete.html'
     success_url = reverse_lazy('departments:major-list')
-    success_message = "专业已成功删除！"
+    success_message = "专业已成功删除。"
+
+    # ✨ 关键：同样为专业删除添加保护
+    def post(self, request, *args, **kwargs):
+        try:
+            response = self.delete(request, *args, **kwargs)
+            messages.success(self.request, self.success_message)
+            return response
+        except ProtectedError:
+            messages.error(request, f"无法删除该专业，因为它下面还包含一个或多个学生。请先处理关联数据。")
+            return redirect(request.META.get('HTTP_REFERER', reverse_lazy('departments:major-list')))

@@ -1,20 +1,35 @@
 # core/views.py
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required # 如果首页需要登录才能访问，可以取消注释
+from django.views import generic
+from django.contrib.auth.mixins import LoginRequiredMixin
 
-# Create your views here.
+# 导入需要的模型
+from departments.models import Department, Major
+from users.models import CustomUser
+from courses.models import Course
 
-# @login_required # 如果首页需要登录，取消此行注释，并确保settings.py中LOGIN_URL已配置
-def home_view(request):
+class HomeView(LoginRequiredMixin, generic.TemplateView):
     """
-    渲染前端的主页/仪表盘。
+    系统主页视图，现在集成了数据看板功能。
     """
-    # 你可以在这里向模板传递一些上下文数据，如果首页需要的话
-    # 例如，统计信息等
-    context = {
-        'page_title': '系统首页',
-        # 'user_role': request.user.role if request.user.is_authenticated and hasattr(request.user, 'role') else None,
-        # 更多上下文...
-    }
-    return render(request, 'home.html', context)
+    template_name = "core/home.html" # 确保模板路径正确
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        
+        # 默认标题
+        context['page_title'] = '欢迎使用学生成绩管理系统'
+        
+        # 只有管理员和教师能看到数据看板
+        if user.role in [CustomUser.Role.ADMIN, CustomUser.Role.TEACHER]:
+            context['show_dashboard'] = True
+            context['department_count'] = Department.objects.count()
+            context['major_count'] = Major.objects.count()
+            context['student_count'] = CustomUser.objects.filter(role=CustomUser.Role.STUDENT).count()
+            context['teacher_count'] = CustomUser.objects.filter(role=CustomUser.Role.TEACHER).count()
+            context['course_count'] = Course.objects.count()
+        else:
+            context['show_dashboard'] = False
+            
+        return context

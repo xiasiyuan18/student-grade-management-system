@@ -1,7 +1,7 @@
 # student_grade_management_system/grades/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.views import generic, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
@@ -14,7 +14,9 @@ from decimal import Decimal
 from .models import Grade, TeachingAssignment
 from courses.models import CourseEnrollment
 from users.models import Student, Teacher, CustomUser
-from common.mixins import TeacherRequiredMixin, StudentRequiredMixin, OwnDataOnlyMixin
+# 确保在 grades 应用下创建了 forms.py 文件并添加了 GradeFormForAdmin
+from .forms import GradeFormForAdmin 
+from common.mixins import TeacherRequiredMixin, StudentRequiredMixin, AdminRequiredMixin, OwnDataOnlyMixin
 
 
 class TeacherCoursesView(TeacherRequiredMixin, generic.ListView):
@@ -39,6 +41,40 @@ class TeacherCoursesView(TeacherRequiredMixin, generic.ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '我的授课课程'
+        return context
+
+
+# =============================================================================
+# ✨ 新增功能: 教师查看自己课程的学生名单
+# =============================================================================
+class TeacherStudentListView(TeacherRequiredMixin, generic.DetailView):
+    """教师查看特定课程的学生名单"""
+    model = TeachingAssignment
+    template_name = 'grades/teacher_student_list.html'
+    context_object_name = 'assignment'
+    pk_url_kwarg = 'assignment_id' # URL 中的主键参数名为 assignment_id
+
+    def get_queryset(self):
+        # 确保教师只能访问自己的课程
+        try:
+            teacher_profile = self.request.user.teacher_profile
+            if teacher_profile:
+                return TeachingAssignment.objects.filter(teacher=teacher_profile)
+            return TeachingAssignment.objects.none()
+        except AttributeError:
+            return TeachingAssignment.objects.none()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        assignment = self.get_object()
+        # 获取所有选修该课程的学生
+        enrollments = CourseEnrollment.objects.filter(
+            teaching_assignment=assignment,
+            status='ENROLLED' # 只看已选课的学生
+        ).select_related('student__user', 'student__major').order_by('student__student_id_num')
+        
+        context['enrollments'] = enrollments
+        context['page_title'] = f'"{assignment.course.course_name}" 学生名单'
         return context
 
 
@@ -112,10 +148,10 @@ class GradeEntryView(TeacherRequiredMixin, View):
         error_count = 0
         
         for key, value in request.POST.items():
-            if key.startswith('grade_') and value.strip():
+            if key.startswith('score_') and value.strip(): #<-- 修改: 'grade_' -> 'score_' 保持一致
                 try:
-                    student_id = int(key.replace('grade_', ''))
-                    score = float(value)
+                    student_id = int(key.replace('score_', '')) #<-- 修改: 'grade_' -> 'score_'
+                    score = Decimal(value) #<-- 修改: 使用 Decimal
                     
                     # 验证分数范围
                     if not (0 <= score <= 100):
@@ -140,7 +176,7 @@ class GradeEntryView(TeacherRequiredMixin, View):
                         teaching_assignment=assignment,
                         defaults={
                             'score': score,
-                            'grade_type': 'FINAL',  # 默认为期末成绩
+                            'last_modified_by': request.user # 记录修改人
                         }
                     )
                     
@@ -211,7 +247,7 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
             weighted_total = 0
             credit_total = 0
             for grade in graded_courses:
-                if grade.score and grade.teaching_assignment and grade.teaching_assignment.course:
+                if grade.score is not None and grade.teaching_assignment and grade.teaching_assignment.course:
                     credits = grade.teaching_assignment.course.credits
                     weighted_total += float(grade.score) * float(credits)
                     credit_total += float(credits)
@@ -238,7 +274,7 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
                 weighted_gpa_total = 0
                 gpa_credit_total = 0
                 for grade in gpa_grades:
-                    if grade.gpa and grade.teaching_assignment and grade.teaching_assignment.course:
+                    if grade.gpa is not None and grade.teaching_assignment and grade.teaching_assignment.course:
                         credits = grade.teaching_assignment.course.credits
                         weighted_gpa_total += float(grade.gpa) * float(credits)
                         gpa_credit_total += float(credits)
@@ -278,23 +314,11 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
         else:
             # 如果没有成绩，设置默认值
             context.update({
-                'total_courses': 0,
-                'completed_courses': 0,
-                'graded_courses': 0,
-                'ungraded_courses': 0,
-                'total_credits': 0,
-                'average_score': None,
-                'weighted_average_score': None,
-                'avg_gpa': None,
-                'weighted_avg_gpa': None,
+                'total_courses': 0, 'completed_courses': 0, 'graded_courses': 0,
+                'ungraded_courses': 0, 'total_credits': 0, 'average_score': None,
+                'weighted_average_score': None, 'avg_gpa': None, 'weighted_avg_gpa': None,
                 'pass_rate': 0,
-                'grade_distribution': {
-                    'excellent': 0,
-                    'good': 0,
-                    'average': 0,
-                    'pass': 0,
-                    'fail': 0,
-                },
+                'grade_distribution': {'excellent': 0, 'good': 0, 'average': 0, 'pass': 0, 'fail': 0,},
                 'semester_grades': {},
             })
         
@@ -326,3 +350,71 @@ class GradeDeleteView(TeacherRequiredMixin, View):
         
         messages.success(request, f"已删除学生 {student_name} 在课程 {course_name} 中的成绩记录")
         return redirect('grades:grade-entry', assignment_id=assignment_id)
+
+
+# =============================================================================
+# ✨ 新增功能: 管理员成绩管理 (带搜索功能)
+# =============================================================================
+class AdminGradeListView(AdminRequiredMixin, generic.ListView):
+    """管理员查看和筛选所有成绩"""
+    model = Grade
+    template_name = 'grades/admin_grade_list.html'
+    context_object_name = 'grades'
+    paginate_by = 20  # 每页显示20条记录
+
+    def get_queryset(self):
+        queryset = Grade.objects.select_related(
+            'student__user', 
+            'teaching_assignment__course', 
+            'teaching_assignment__teacher'
+        ).order_by('-entry_time')
+
+        # 获取搜索查询参数
+        search_query = self.request.GET.get('q', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(student__name__icontains=search_query) |
+                Q(student__student_id_num__icontains=search_query) |
+                Q(teaching_assignment__course__course_name__icontains=search_query) |
+                Q(teaching_assignment__course__course_id__icontains=search_query) |
+                Q(teaching_assignment__teacher__name__icontains=search_query) |
+                Q(teaching_assignment__semester__icontains=search_query)
+            )
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '全局成绩管理'
+        context['search_query'] = self.request.GET.get('q', '')
+        return context
+
+
+class AdminGradeUpdateView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    """管理员修改成绩"""
+    model = Grade
+    form_class = GradeFormForAdmin
+    template_name = 'grades/admin_grade_form.html'
+    success_url = reverse_lazy('grades:admin-grade-list')
+    success_message = "成绩记录已成功更新。"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '修改成绩'
+        return context
+
+    def form_valid(self, form):
+        form.instance.last_modified_by = self.request.user
+        return super().form_valid(form)
+
+
+class AdminGradeDeleteView(AdminRequiredMixin, SuccessMessageMixin, generic.DeleteView):
+    """管理员删除成绩"""
+    model = Grade
+    template_name = 'grades/admin_grade_confirm_delete.html'
+    success_url = reverse_lazy('grades:admin-grade-list')
+    success_message = "成绩记录已成功删除。"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '确认删除成绩'
+        return context

@@ -34,7 +34,9 @@ INSTALLED_APPS = [
     "departments",
     "courses",
     "grades",
-    "common",  # 添加这一行
+    "common", 
+    'crispy_forms',
+    'crispy_bootstrap5', # 添加这一行
 ]
 
 MIDDLEWARE = [
@@ -74,7 +76,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "student-grade-management-system",
         "USER": "root",
-        "PASSWORD": "123456dp",
+        "PASSWORD": "xiasiyuan18",
         "HOST": "localhost",
         "PORT": "3306",
         "OPTIONS": {
@@ -142,3 +144,5 @@ SIMPLE_JWT = {
     "TOKEN_TYPE_CLAIM": "token_type",
     "JTI_CLAIM": "jti",
 }
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"

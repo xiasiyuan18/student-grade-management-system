@@ -4,9 +4,9 @@ from django.core.validators import (MaxValueValidator, MinLengthValidator,
                                     MinValueValidator, RegexValidator)
 from django.db import models
 
-# 导入 Department 和 Teacher 模型，因为 Course 和 TeachingAssignment 中有引用
+# 导入 Department, Teacher, 和 Student 模型
 from departments.models import Department
-from users.models import Teacher
+from users.models import Teacher, Student
 
 
 class Course(models.Model):
@@ -14,7 +14,6 @@ class Course(models.Model):
     存储课程基本信息
     对应 SQL 表: 课程
     """
-
     course_id = models.CharField(
         verbose_name="课程编号",
         max_length=50,
@@ -68,17 +67,6 @@ class Course(models.Model):
         help_text="开设该课程的院系",
     )
 
-    # 移除 @property def course_hours 和 def display_course_hours
-    # @property
-    # def course_hours(self):
-    #     """动态计算学时，这里简单认为学时等于学分。"""
-    #     return self.credits
-
-    # def display_course_hours(self):
-    #     return self.course_hours
-
-    # display_course_hours.short_description = "学时 (计算所得)"
-
     def __str__(self):
         return f"{self.course_id} - {self.course_name}"
 
@@ -88,13 +76,11 @@ class Course(models.Model):
         ordering = ['course_id']
 
 
-class TeachingAssignment(models.Model): 
+class TeachingAssignment(models.Model):
     """
     记录教师、课程、学期之间的授课关系 (M:N)
     对应 SQL 表: 教师授课
-    这是 Teacher 和 Course 之间的多对多关系的中间表，并带有额外字段 '学期'
     """
-
     teacher = models.ForeignKey(
         "users.Teacher", on_delete=models.PROTECT, verbose_name="授课教师"
     )
@@ -140,12 +126,17 @@ class CourseEnrollment(models.Model):
         verbose_name='学生',
         related_name='course_enrollments'
     )
+    
+    # ✨ 关键修复：这里的关联字段从 Course 改为 TeachingAssignment
+    # 这样才能准确知道学生选的是哪个老师、哪个学期的课
     teaching_assignment = models.ForeignKey(
         TeachingAssignment,
         on_delete=models.CASCADE,
         verbose_name='授课安排',
-        related_name='enrolled_students'
+        # ✨ 关键修复：定义一个清晰的反向关联名称
+        related_name='enrollments'
     )
+    
     enrollment_date = models.DateTimeField(
         auto_now_add=True,
         verbose_name='选课时间'

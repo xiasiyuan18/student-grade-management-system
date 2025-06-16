@@ -1,8 +1,9 @@
-# core/urls.py
-
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
+
+# ✨ 关键修复：导入我们自定义的 home 视图函数
+from .views import home 
 
 # 导入JWT认证的token获取路由
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView, TokenVerifyView
@@ -16,18 +17,19 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
 
     # 2. 前端页面路由
-    path('', TemplateView.as_view(template_name='home.html'), name='home'),
+    # ✨ 关键修复：将主页路由指向我们自己的 home 视图函数
+    path('', home, name='home'), 
     
     # 将所有前端应用的URL聚合到 /frontend/ 下
     path('frontend/', include([
         path('users/', include('users.frontend_urls', namespace='users')),
-        path('departments/', include('departments.frontend_urls', namespace='departments')),  # 确保这行存在
+        path('departments/', include('departments.frontend_urls', namespace='departments')),
         path('courses/', include('courses.frontend_urls', namespace='courses')),
         path('grades/', include('grades.frontend_urls', namespace='grades')),
         path('utils/', include('utils.urls', namespace='utils')),
     ])),
 
-    # ✨ 关键修复：添加通用查询模块的 URL
+    # ✨ 关键修复：添加通用查询模块的 URL (这行在你提供的代码中已有，保持即可)
     path('query/', include('common.urls', namespace='common')),
 
     # 3. 后端 API 路由

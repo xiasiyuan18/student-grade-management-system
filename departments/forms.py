@@ -20,7 +20,11 @@ class MajorForm(forms.ModelForm):
         fields = '__all__'
         widgets = {
             'major_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'major_code': forms.TextInput(attrs={'class': 'form-control'}),
             'department': forms.Select(attrs={'class': 'form-select'}),
+            'degree_type': forms.Select(attrs={'class': 'form-select'}),
+            'duration': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'bachelor_credits_required': forms.NumberInput(attrs={'class': 'form-control'}),
             'master_credits_required': forms.NumberInput(attrs={'class': 'form-control'}),
             'doctor_credits_required': forms.NumberInput(attrs={'class': 'form-control'}),

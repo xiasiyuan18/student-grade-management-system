@@ -18,24 +18,32 @@
             <table class="table table-hover align-middle">
                 <thead class="table-light">
                     <tr>
-                        <th scope="col">专业名称</th>
                         <th scope="col">专业代码</th>
+                        <th scope="col">专业名称</th>
                         <th scope="col">所属院系</th>
                         <th scope="col">学位类型</th>
-                        <th scope="col">学制 (年)</th>
+                        <th scope="col">学制</th>
                         <th scope="col">描述</th>
+                        <th scope="col">学分要求</th>
                         <th scope="col" class="text-end">操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for major in object_list %}
                     <tr>
-                        <td>{{ major.major_name }}</td>
-                        <td>{{ major.major_id | default:"-" }}</td>
-                        <td>{{ major.department.name | default:"-" }}</td>
-                        <td>{{ major.degree_type | default:"-" }}</td>
-                        <td>{{ major.schooling_system | default:"-" }}</td>
-                        <td>{{ major.description | default:"-" | truncatechars:30 }}</td>
+                        <td><code>{{ major.major_code|default:"-" }}</code></td>
+                        <td><strong>{{ major.major_name }}</strong></td>
+                        <td>{{ major.department.dept_name }}</td>
+                        <td><span class="badge bg-info">{{ major.get_degree_type_display }}</span></td>
+                        <td><span class="badge bg-secondary">{{ major.get_duration_display }}</span></td>
+                        <td>{{ major.description|default:"-"|truncatechars:30 }}</td>
+                        <td>
+                            <small>
+                                {% if major.bachelor_credits_required > 0 %}学士: {{ major.bachelor_credits_required }}<br>{% endif %}
+                                {% if major.master_credits_required > 0 %}硕士: {{ major.master_credits_required }}<br>{% endif %}
+                                {% if major.doctor_credits_required > 0 %}博士: {{ major.doctor_credits_required }}{% endif %}
+                            </small>
+                        </td>
                         <td class="text-end">
                             <a href="{% url 'departments:major-update' major.pk %}" class="btn btn-outline-primary btn-sm">编辑</a>
                             <a href="{% url 'departments:major-delete' major.pk %}" class="btn btn-outline-danger btn-sm">删除</a>
@@ -43,7 +51,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">没有专业信息。请先添加一个新专业。</td>
+                        <td colspan="8" class="text-center text-muted py-4">没有专业信息。请先添加一个新专业。</td>
                     </tr>
                     {% endfor %}
                 </tbody>

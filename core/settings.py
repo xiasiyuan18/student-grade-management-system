@@ -77,7 +77,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "student-grade-management-system",
         "USER": "root",
-        "PASSWORD": "xiasiyuan18",
+        "PASSWORD": "123456dp",
         "HOST": "localhost",
         "PORT": "3306",
            # ✨ 关键：在这里添加 OPTIONS 配置，强制使用 UTF-8 编码

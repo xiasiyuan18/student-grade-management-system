@@ -60,13 +60,16 @@ class MajorListView(BaseInfoQueryMixin, generic.ListView):
     def get_queryset(self):
         queryset = Major.objects.select_related('department').order_by('department__dept_name', 'major_name')
         
-        # 搜索功能 - 修改搜索字段为实际存在的字段
+        # 搜索功能 - 添加新字段到搜索范围
         search_query = self.request.GET.get('search', '')
         if search_query:
             queryset = queryset.filter(
                 Q(major_name__icontains=search_query) |
-                Q(department__dept_name__icontains=search_query)
-                # 移除不存在的字段：major_code, degree_type
+                Q(major_code__icontains=search_query) |
+                Q(department__dept_name__icontains=search_query) |
+                Q(degree_type__icontains=search_query) |
+                Q(duration__icontains=search_query) |
+                Q(description__icontains=search_query)
             )
         
         # 按院系筛选
@@ -74,13 +77,29 @@ class MajorListView(BaseInfoQueryMixin, generic.ListView):
         if department_id:
             queryset = queryset.filter(department_id=department_id)
         
+        # 按学位类型筛选
+        degree_type = self.request.GET.get('degree_type', '')
+        if degree_type:
+            queryset = queryset.filter(degree_type=degree_type)
+        
+        # 按学制筛选
+        duration = self.request.GET.get('duration', '')
+        if duration:
+            queryset = queryset.filter(duration=duration)
+        
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_department'] = self.request.GET.get('department', '')
+        context['selected_degree_type'] = self.request.GET.get('degree_type', '')
+        context['selected_duration'] = self.request.GET.get('duration', '')
         context['departments'] = Department.objects.all().order_by('dept_name')
+        
+        # 添加学位类型和学制选项
+        context['degree_types'] = Major.DEGREE_TYPE_CHOICES
+        context['durations'] = Major.DURATION_CHOICES
         context['page_title'] = '专业信息查询'
         return context
 

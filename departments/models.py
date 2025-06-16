@@ -87,8 +87,6 @@ class Major(models.Model):
     对应 SQL 表: 专业
     """
 
-    # 专业编号 (id): Django 自动处理，对应 AUTO_INCREMENT PRIMARY KEY
-
     major_name = models.CharField(
         verbose_name="专业名称",
         max_length=100,
@@ -96,6 +94,16 @@ class Major(models.Model):
         blank=False,  # 对应 CHECK (trim(`专业名称`) <> '')
         help_text="专业的完整名称",
         # db_comment="专业的完整名称"
+    )
+
+    # ✨ 新增：专业代码
+    major_code = models.CharField(
+        verbose_name="专业代码",
+        max_length=20,
+        unique=True,
+        null=True,  # 暂时允许为空，便于迁移
+        blank=True,
+        help_text="专业的唯一代码，例如：CS001, MATH002",
     )
 
     # 所属院系编号: 外键关联到 Department 模型
@@ -111,14 +119,53 @@ class Major(models.Model):
         # db_comment="该专业所属（开设）院系的编号"
     )
 
+    # ✨ 新增：学位类型
+    DEGREE_TYPE_CHOICES = [
+        ('bachelor', '学士'),
+        ('master', '硕士'),
+        ('doctor', '博士'),
+        ('all', '本硕博'),
+    ]
+    degree_type = models.CharField(
+        verbose_name="学位类型",
+        max_length=20,
+        choices=DEGREE_TYPE_CHOICES,
+        default='bachelor',
+        help_text="该专业提供的学位类型",
+    )
+
+    # ✨ 新增：学制
+    DURATION_CHOICES = [
+        ('2', '2年'),
+        ('3', '3年'),
+        ('4', '4年'),
+        ('5', '5年'),
+        ('6', '6年'),
+    ]
+    duration = models.CharField(
+        verbose_name="学制",
+        max_length=10,
+        choices=DURATION_CHOICES,
+        default='4',
+        help_text="该专业的标准学制年限",
+    )
+
+    # ✨ 新增：专业描述
+    description = models.TextField(
+        verbose_name="专业描述",
+        max_length=500,
+        null=True,
+        blank=True,
+        help_text="专业的详细描述和培养目标（可选）",
+    )
+
     bachelor_credits_required = models.DecimalField(
         verbose_name="学士学分要求",
-        max_digits=5,  # 对应 decimal(5, 1)
+        max_digits=5,
         decimal_places=1,
-        default=Decimal("0.0"),  # 对应 DEFAULT '0.0'，使用 Decimal 类型
-        validators=[MinValueValidator(Decimal("0.0"))],  # 对应 CHECK (学分要求 >= 0)
+        default=Decimal("0.0"),
+        validators=[MinValueValidator(Decimal("0.0"))],
         help_text="完成该专业学士学位所需的最低学分 (>=0)",
-        # db_comment="完成该专业学士学位所需的最低学分"
     )
 
     master_credits_required = models.DecimalField(
@@ -128,7 +175,6 @@ class Major(models.Model):
         default=Decimal("0.0"),
         validators=[MinValueValidator(Decimal("0.0"))],
         help_text="完成该专业硕士学位所需的最低学分 (>=0)",
-        # db_comment="完成该专业硕士学位所需的最低学分"
     )
 
     doctor_credits_required = models.DecimalField(
@@ -138,7 +184,6 @@ class Major(models.Model):
         default=Decimal("0.0"),
         validators=[MinValueValidator(Decimal("0.0"))],
         help_text="完成该专业博士学位所需的最低学分 (>=0)",
-        # db_comment="完成该专业博士学位所需的最低学分"
     )
 
     def __str__(self):

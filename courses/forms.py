@@ -3,6 +3,7 @@ from django import forms
 from .models import Course, TeachingAssignment
 from users.models import Teacher
 from departments.models import Department
+from users.models import Student  # 导入 Student 模型
 
 class CourseForm(forms.ModelForm):
     class Meta:
@@ -74,3 +75,41 @@ class TeachingAssignmentForm(forms.ModelForm):
             return f"{obj.course_name} ({obj.course_id}) - {dept_name}"
         except Exception:
             return f"{obj.course_name} ({obj.course_id})"
+
+class StudentForm(forms.ModelForm):
+    class Meta:
+        model = Student
+        fields = [
+            'student_id_num', 'name', 'id_card', 'gender', 'birth_date',
+            'phone', 'dormitory', 'home_address', 'grade_year',
+            'major', 'department', 'minor_major', 'minor_department',  # ✅ 添加 minor_major
+            'degree_level', 'credits_earned', 'minor_credits_earned'
+        ]
+        widgets = {
+            'student_id_num': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'id_card': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'dormitory': forms.TextInput(attrs={'class': 'form-control'}),
+            'home_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'grade_year': forms.NumberInput(attrs={'class': 'form-control'}),
+            'major': forms.Select(attrs={'class': 'form-select'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'minor_major': forms.Select(attrs={'class': 'form-select'}),  # ✅ 新增
+            'minor_department': forms.Select(attrs={'class': 'form-select'}),
+            'degree_level': forms.TextInput(attrs={'class': 'form-control'}),
+            'credits_earned': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'minor_credits_earned': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 设置辅修字段为非必填
+        self.fields['minor_major'].required = False
+        self.fields['minor_department'].required = False
+        
+        # 设置辅修字段的空选项
+        self.fields['minor_major'].empty_label = "请选择辅修专业（可选）"
+        self.fields['minor_department'].empty_label = "请选择辅修院系（可选）"

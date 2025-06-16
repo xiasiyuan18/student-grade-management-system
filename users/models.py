@@ -85,7 +85,6 @@ class Student(models.Model):
     name = models.CharField(verbose_name=_('姓名'), max_length=100)
     id_card = models.CharField(verbose_name=_('身份证号'), max_length=18, unique=True)
     
-    # ✨ 关键修复：重新添加 GENDER_CHOICES 和 gender 字段
     GENDER_CHOICES = [
         ("男", "男"),
         ("女", "女"),
@@ -97,14 +96,29 @@ class Student(models.Model):
     dormitory = models.CharField(_("宿舍"), max_length=100, blank=True, null=True)
     home_address = models.CharField(_("家庭地址"), max_length=255, blank=True, null=True)
     grade_year = models.IntegerField(_("年级/入学年份"), blank=True, null=True)
+    
+    # ✨ 主修相关
     major = models.ForeignKey(
-        "departments.Major", on_delete=models.PROTECT, verbose_name=_("专业")
+        "departments.Major", 
+        on_delete=models.PROTECT, 
+        verbose_name=_("主修专业"),
+        related_name="major_students"
     )
     department = models.ForeignKey(
         "departments.Department",
         on_delete=models.PROTECT,
         verbose_name=_("主修院系"),
         related_name="major_department_students"
+    )
+    
+    # ✨ 辅修相关（新增）
+    minor_major = models.ForeignKey(
+        "departments.Major",
+        on_delete=models.SET_NULL,
+        verbose_name=_("辅修专业"),
+        blank=True,
+        null=True,
+        related_name="minor_students"
     )
     minor_department = models.ForeignKey(
         "departments.Department",
@@ -114,9 +128,15 @@ class Student(models.Model):
         null=True,
         related_name="minor_department_students"
     )
+    
     degree_level = models.CharField(_("学位等级"), max_length=20)
     credits_earned = models.DecimalField(
         _("已修学分"), max_digits=5, decimal_places=1, default=0.0
+    )
+    
+    # ✨ 新增：辅修学分
+    minor_credits_earned = models.DecimalField(
+        _("辅修已修学分"), max_digits=5, decimal_places=1, default=0.0
     )
 
     def __str__(self):
@@ -125,6 +145,34 @@ class Student(models.Model):
     class Meta:
         verbose_name = _('学生档案')
         verbose_name_plural = _('学生档案')
+    
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        
+        # 确保主修院系与主修专业匹配
+        if self.major and self.department:
+            if self.major.department != self.department:
+                raise ValidationError({
+                    'department': '主修院系必须与主修专业所属院系一致'
+                })
+        
+        # 确保辅修院系与辅修专业匹配
+        if self.minor_major and self.minor_department:
+            if self.minor_major.department != self.minor_department:
+                raise ValidationError({
+                    'minor_department': '辅修院系必须与辅修专业所属院系一致'
+                })
+        
+        # 确保主修和辅修不同
+        if self.minor_major and self.major:
+            if self.minor_major == self.major:
+                raise ValidationError({
+                    'minor_major': '辅修专业不能与主修专业相同'
+                })
+
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)
 
 
 # --- 4. 教师 Profile 模型 ---

@@ -13,6 +13,7 @@ from django.core.exceptions import PermissionDenied
 from .models import Course, TeachingAssignment, CourseEnrollment
 from .forms import CourseForm, TeachingAssignmentForm
 from users.models import Student
+from users.forms import StudentForm
 from common.mixins import AdminRequiredMixin
 
 # --- 课程管理视图 (管理员视角) ---
@@ -196,3 +197,17 @@ class BulkEnrollmentView(AdminRequiredMixin, View):
         except Exception as e:
             messages.error(request, f"选课操作失败: {str(e)}")
             return redirect('courses:bulk-enrollment')
+
+
+class StudentProfileEditView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
+    """管理员编辑学生档案"""
+    model = Student
+    form_class = StudentForm  # ✅ 确保使用了正确的表单
+    template_name = 'users/student_profile_edit.html'
+    success_url = reverse_lazy('users:student-list')
+    success_message = "学生档案信息已成功更新！"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = '编辑学生档案'
+        return context

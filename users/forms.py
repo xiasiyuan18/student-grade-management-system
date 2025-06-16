@@ -164,3 +164,38 @@ class TeacherProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ('email', 'first_name', 'last_name')
+
+
+class StudentForm(forms.ModelForm):
+    class Meta:
+        model = Student
+        fields = [
+            'student_id_num', 'name', 'id_card', 'gender', 'birth_date',
+            'phone', 'dormitory', 'home_address', 'grade_year',
+            'major', 'department', 'minor_major', 'minor_department',
+            'degree_level', 'credits_earned', 'minor_credits_earned'
+        ]
+        widgets = {
+            'student_id_num': forms.TextInput(attrs={'class': 'form-control'}),
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'id_card': forms.TextInput(attrs={'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'dormitory': forms.TextInput(attrs={'class': 'form-control'}),
+            'home_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'grade_year': forms.NumberInput(attrs={'class': 'form-control'}),
+            'major': forms.Select(attrs={'class': 'form-select'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'minor_major': forms.Select(attrs={'class': 'form-select'}),
+            'minor_department': forms.Select(attrs={'class': 'form-select'}),
+            'degree_level': forms.TextInput(attrs={'class': 'form-control'}),
+            'credits_earned': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'minor_credits_earned': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # 设置辅修字段为非必填
+        self.fields['minor_major'].required = False
+        self.fields['minor_department'].required = False

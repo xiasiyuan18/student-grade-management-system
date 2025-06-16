@@ -1,16 +1,48 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views import generic
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Q
 from django.core.paginator import Paginator
+from django.views import View
+from django.contrib import messages
+from decimal import Decimal
 
+from courses.models import Course, CourseEnrollment, TeachingAssignment
+from grades.models import Grade  # ✅ Grade 在 grades 应用中，不在 courses 中
 from departments.models import Department, Major
-from courses.models import Course, CourseEnrollment
 from users.models import Teacher, Student, CustomUser
 from .mixins import (
-    RoleRequiredMixin, StudentRequiredMixin, 
+    RoleRequiredMixin, StudentRequiredMixin, TeacherRequiredMixin,
     SensitiveInfoMixin, OwnDataOnlyMixin
 )
+
+
+def calculate_and_update_student_credits(student):
+    """计算并更新学生的学分统计"""
+    # 获取学生所有有效的成绩记录
+    grades = Grade.objects.filter(
+        student=student,
+        teaching_assignment__course__isnull=False
+    ).select_related('teaching_assignment__course')
+    
+    total_credits = 0
+    earned_credits = 0
+    
+    for grade in grades:
+        course_credits = grade.teaching_assignment.course.credits
+        total_credits += course_credits
+        
+        # 假设60分及以上为及格，可获得学分
+        if grade.score >= 60:
+            earned_credits += course_credits
+    
+    # 更新学生的学分信息（如果Student模型有这些字段的话）
+    if hasattr(student, 'total_credits'):
+        student.total_credits = total_credits
+    if hasattr(student, 'earned_credits'):
+        student.earned_credits = earned_credits
+    if hasattr(student, 'save'):
+        student.save()
 
 
 class BaseInfoQueryMixin(LoginRequiredMixin):
@@ -305,3 +337,80 @@ class StudentInfoView(StudentRequiredMixin, generic.TemplateView):
             context['error'] = f"获取学生信息失败: {str(e)}"
         
         return context
+
+
+class GradeEntryView(TeacherRequiredMixin, View):
+    """教师录入成绩"""
+    
+    def post(self, request, assignment_id):
+        assignment = get_object_or_404(TeachingAssignment, pk=assignment_id)
+        
+        try:
+            if assignment.teacher != request.user.teacher_profile:
+                messages.error(request, "权限错误")
+                return redirect('grades:teacher-courses')
+        except AttributeError:
+            return redirect('home')
+        
+        updated_count = 0
+        error_count = 0
+        updated_students = set()  # ✅ 新增：记录需要更新学分的学生
+        
+        for key, value in request.POST.items():
+            if key.startswith('score_') and value.strip():
+                try:
+                    student_pk = int(key.replace('score_', ''))
+                    score_val = Decimal(value)
+                    
+                    if not (0 <= score_val <= 100):
+                        error_count += 1
+                        continue
+                    
+                    student = get_object_or_404(Student, pk=student_pk)
+                    
+                    if not CourseEnrollment.objects.filter(student=student, teaching_assignment=assignment, status='ENROLLED').exists():
+                        error_count += 1
+                        continue
+                    
+                    grade, created = Grade.objects.update_or_create(
+                        student=student,
+                        teaching_assignment=assignment,
+                        defaults={'score': score_val, 'last_modified_by': request.user}
+                    )
+                    updated_count += 1
+                    updated_students.add(student)  # ✅ 新增：记录学生
+                    
+                except (ValueError, Student.DoesNotExist):
+                    error_count += 1
+                    continue
+        
+        # ✅ 新增：为所有更新了成绩的学生重新计算学分
+        for student in updated_students:
+            calculate_and_update_student_credits(student)
+        
+        if updated_count > 0:
+            messages.success(request, f"成功录入/更新了 {updated_count} 条成绩记录，并已自动更新相关学生的学分统计。")
+        if error_count > 0:
+            messages.warning(request, f"有 {error_count} 条记录因数据无效或权限问题而录入失败。")
+        
+        return redirect('grades:grade-entry', assignment_id=assignment_id)
+
+
+# common/views.py 中的学生查询视图
+def get_queryset(self):
+    queryset = Student.objects.select_related(
+        'user', 'major', 'department', 'minor_major', 'minor_department'
+    ).order_by('student_id_num')
+    
+    search_query = self.request.GET.get('search', '')
+    if search_query:
+        queryset = queryset.filter(
+            Q(name__icontains=search_query) |
+            Q(student_id_num__icontains=search_query) |
+            Q(major__major_name__icontains=search_query) |
+            Q(department__dept_name__icontains=search_query) |
+            Q(minor_major__major_name__icontains=search_query) |
+            Q(minor_department__dept_name__icontains=search_query)
+        )
+    
+    return queryset

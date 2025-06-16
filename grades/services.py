@@ -12,31 +12,43 @@ from .models import Grade
 
 def calculate_and_update_student_credits(student: Student):
     """
-    重新计算并更新指定学生的已修学分。
+    重新计算并更新指定学生的已修学分（分主修和辅修）。
     当学生的任何有效成绩被创建或更新后调用此函数。
     """
+    # 获取所有有效成绩（有分数的成绩）
     valid_grades = Grade.objects.filter(student=student, score__isnull=False)
 
-    # 使用 set 来确保每个课程的学分只被计算一次，即使学生可能因某种原因对同一课程有多个有效成绩记录
-    # (虽然我们的模型设计上，一个学生对一个 teaching_assignment 只有一个成绩)
-    # 但如果未来业务允许重修且只算最高学分对应课程的一次学分，这个逻辑可能需要调整。
-    # 目前，只要是 score 不为 null 的 grade，其对应课程的学分都会被计入。
-
-    # 重新审视：根据您之前的说法 “不用考虑及格不及格”，只要有分数就计入学分。
-    # 一个学生对一个 teaching_assignment 只有一个成绩记录。
-    # 所以直接累加所有 score is not null 的 Grade 记录对应的 course.credits 即可。
-
-    total_credits_earned = Decimal("0.0")
+    # 计算主修学分和辅修学分
+    major_credits = Decimal("0.0")
+    minor_credits = Decimal("0.0")
+    
     if valid_grades.exists():
         for grade in valid_grades:
             if grade.teaching_assignment and grade.teaching_assignment.course:
-                total_credits_earned += grade.teaching_assignment.course.credits
-            # 如果 grade.teaching_assignment.course.credits 是 None，需要处理
-            # 或者在 Course 模型中确保 credits 字段有默认值且不为 None
+                course = grade.teaching_assignment.course
+                credits = course.credits or Decimal("0.0")
+                
+                # 判断是主修还是辅修课程
+                if course.department == student.department:
+                    # 主修院系的课程算作主修学分
+                    major_credits += credits
+                elif student.minor_department and course.department == student.minor_department:
+                    # 辅修院系的课程算作辅修学分
+                    minor_credits += credits
+                else:
+                    # 其他院系的课程默认算作主修学分（选修课等）
+                    major_credits += credits
 
-    student.credits_earned = total_credits_earned
-    student.save(update_fields=["credits_earned"])
-    return total_credits_earned
+    # 更新学生的学分统计
+    student.credits_earned = major_credits
+    student.minor_credits_earned = minor_credits
+    student.save(update_fields=["credits_earned", "minor_credits_earned"])
+    
+    return {
+        'major_credits': major_credits,
+        'minor_credits': minor_credits,
+        'total_credits': major_credits + minor_credits
+    }
 
 
 @transaction.atomic

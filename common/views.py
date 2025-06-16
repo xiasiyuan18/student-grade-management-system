@@ -60,14 +60,13 @@ class MajorListView(BaseInfoQueryMixin, generic.ListView):
     def get_queryset(self):
         queryset = Major.objects.select_related('department').order_by('department__dept_name', 'major_name')
         
-        # 搜索功能
+        # 搜索功能 - 修改搜索字段为实际存在的字段
         search_query = self.request.GET.get('search', '')
         if search_query:
             queryset = queryset.filter(
                 Q(major_name__icontains=search_query) |
-                Q(major_code__icontains=search_query) |
-                Q(department__dept_name__icontains=search_query) |
-                Q(degree_type__icontains=search_query)
+                Q(department__dept_name__icontains=search_query)
+                # 移除不存在的字段：major_code, degree_type
             )
         
         # 按院系筛选

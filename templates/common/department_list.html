@@ -13,7 +13,7 @@
         <form method="get" class="row g-3">
             <div class="col-md-10">
                 <input type="text" name="search" class="form-control" 
-                       placeholder="搜索院系名称、代码或描述..." 
+                       placeholder="搜索院系名称、代码或办公地点..." 
                        value="{{ search_query }}">
             </div>
             <div class="col-md-2">
@@ -32,7 +32,8 @@
                 <tr>
                     <th>院系名称</th>
                     <th>院系代码</th>
-                    <th>描述</th>
+                    <th>办公地点</th>
+                    <th>联系电话</th>
                     <th>专业数量</th>
                 </tr>
             </thead>
@@ -41,9 +42,10 @@
                 <tr>
                     <td><strong>{{ department.dept_name }}</strong></td>
                     <td>{{ department.dept_code|default:"-" }}</td>
-                    <td>{{ department.description|default:"-"|truncatechars:50 }}</td>
+                    <td>{{ department.office_location|default:"-" }}</td>
+                    <td>{{ department.phone_number|default:"-" }}</td>
                     <td>
-                        <span class="badge bg-info">{{ department.majors.count }} 个专业</span>
+                        <span class="badge bg-info">{{ department.major_set.count }} 个专业</span>
                     </td>
                 </tr>
                 {% endfor %}

@@ -13,7 +13,7 @@
         <form method="get" class="row g-3">
             <div class="col-md-6">
                 <input type="text" name="search" class="form-control" 
-                       placeholder="搜索专业名称、代码、院系或学位类型..." 
+                       placeholder="搜索专业名称或院系名称..." 
                        value="{{ search_query }}">
             </div>
             <div class="col-md-4">
@@ -41,28 +41,38 @@
             <thead class="table-dark">
                 <tr>
                     <th>专业名称</th>
-                    <th>专业代码</th>
                     <th>所属院系</th>
-                    <th>学位类型</th>
-                    <th>学制</th>
-                    <th>描述</th>
+                    <th>学士学分要求</th>
+                    <th>硕士学分要求</th>
+                    <th>博士学分要求</th>
                 </tr>
             </thead>
             <tbody>
                 {% for major in majors %}
                 <tr>
                     <td><strong>{{ major.major_name }}</strong></td>
-                    <td>{{ major.major_code|default:"-" }}</td>
                     <td>{{ major.department.dept_name }}</td>
                     <td>
-                        {% if major.degree_type %}
-                            <span class="badge bg-primary">{{ major.degree_type }}</span>
+                        {% if major.bachelor_credits_required > 0 %}
+                            <span class="badge bg-primary">{{ major.bachelor_credits_required }} 学分</span>
                         {% else %}
-                            -
+                            <span class="text-muted">-</span>
                         {% endif %}
                     </td>
-                    <td>{{ major.duration|default:"-" }}</td>
-                    <td>{{ major.description|default:"-"|truncatechars:40 }}</td>
+                    <td>
+                        {% if major.master_credits_required > 0 %}
+                            <span class="badge bg-success">{{ major.master_credits_required }} 学分</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if major.doctor_credits_required > 0 %}
+                            <span class="badge bg-warning">{{ major.doctor_credits_required }} 学分</span>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

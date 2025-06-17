@@ -9,7 +9,7 @@ from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied
 from django.http import JsonResponse
 from django.db.models import Avg, Count, Q
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from .models import Grade, TeachingAssignment
 from courses.models import CourseEnrollment
@@ -135,40 +135,86 @@ class GradeEntryView(TeacherRequiredMixin, View):
         
         updated_count = 0
         error_count = 0
+        error_details = []  # ✅ 新增：收集详细错误信息
+        
+        # ✅ 新增：记录处理的表单数据，用于调试
+        print(f"DEBUG: 处理授课安排 {assignment_id} 的成绩录入")
+        print(f"DEBUG: POST 数据: {dict(request.POST)}")
         
         for key, value in request.POST.items():
             if key.startswith('score_') and value.strip():
                 try:
-                    # student_pk 就是学生的主键 (user_id)
                     student_pk = int(key.replace('score_', ''))
                     score_val = Decimal(value)
                     
+                    print(f"DEBUG: 处理学生 {student_pk}, 分数 {score_val}")
+                    
+                    # ✅ 改进：详细检查分数范围
                     if not (0 <= score_val <= 100):
                         error_count += 1
+                        error_details.append(f"学生ID {student_pk}: 分数 {score_val} 超出有效范围(0-100)")
+                        print(f"DEBUG: 分数范围错误 - 学生 {student_pk}, 分数 {score_val}")
                         continue
                     
-                    # ✨ 关键：使用 pk 来获取学生对象
-                    student = get_object_or_404(Student, pk=student_pk)
-                    
-                    if not CourseEnrollment.objects.filter(student=student, teaching_assignment=assignment, status='ENROLLED').exists():
+                    # ✅ 改进：详细检查学生是否存在
+                    try:
+                        student = Student.objects.get(pk=student_pk)
+                        print(f"DEBUG: 找到学生 {student.name} ({student.student_id_num})")
+                    except Student.DoesNotExist:
                         error_count += 1
+                        error_details.append(f"学生ID {student_pk}: 学生不存在")
+                        print(f"DEBUG: 学生不存在 - ID {student_pk}")
                         continue
                     
+                    # ✅ 改进：详细检查选课状态
+                    enrollment = CourseEnrollment.objects.filter(
+                        student=student, 
+                        teaching_assignment=assignment
+                    ).first()
+                    
+                    if not enrollment:
+                        error_count += 1
+                        error_details.append(f"学生 {student.name}({student.student_id_num}): 未找到选课记录")
+                        print(f"DEBUG: 未找到选课记录 - 学生 {student.name}")
+                        continue
+                    
+                    if enrollment.status != 'ENROLLED':
+                        error_count += 1
+                        error_details.append(f"学生 {student.name}({student.student_id_num}): 选课状态为 '{enrollment.status}'，不是 'ENROLLED'")
+                        print(f"DEBUG: 选课状态错误 - 学生 {student.name}, 状态 {enrollment.status}")
+                        continue
+                    
+                    # ✅ 如果所有检查都通过，创建或更新成绩
                     grade, created = Grade.objects.update_or_create(
                         student=student,
                         teaching_assignment=assignment,
                         defaults={'score': score_val, 'last_modified_by': request.user}
                     )
                     updated_count += 1
-                except (ValueError, Student.DoesNotExist):
+                    print(f"DEBUG: 成功{'创建' if created else '更新'}成绩 - 学生 {student.name}, 分数 {score_val}")
+                    
+                except (ValueError, InvalidOperation) as e:
                     error_count += 1
+                    error_details.append(f"学生ID {student_pk}: 分数格式错误 - {str(e)}")
+                    print(f"DEBUG: 分数格式错误 - 学生ID {student_pk}, 错误: {e}")
                     continue
-        
+                except Exception as e:
+                    error_count += 1
+                    error_details.append(f"学生ID {student_pk}: 未知错误 - {str(e)}")
+                    print(f"DEBUG: 未知错误 - 学生ID {student_pk}, 错误: {e}")
+                    continue
+    
+        # ✅ 改进：显示详细的错误信息
         if updated_count > 0:
             messages.success(request, f"成功录入/更新了 {updated_count} 条成绩记录。")
-        if error_count > 0:
-            messages.warning(request, f"有 {error_count} 条记录因数据无效或权限问题而录入失败。")
         
+        if error_count > 0:
+            messages.warning(request, f"有 {error_count} 条记录录入失败，详细信息：")
+            for detail in error_details[:10]:  # 最多显示10个错误
+                messages.error(request, detail)
+            if len(error_details) > 10:
+                messages.error(request, f"还有 {len(error_details) - 10} 个错误未显示...")
+    
         return redirect('grades:grade-entry', assignment_id=assignment_id)
 
 

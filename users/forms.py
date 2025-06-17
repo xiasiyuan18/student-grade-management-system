@@ -199,3 +199,94 @@ class StudentForm(forms.ModelForm):
         # 设置辅修字段为非必填
         self.fields['minor_major'].required = False
         self.fields['minor_department'].required = False
+
+class StudentProfileForm(forms.ModelForm):
+    class Meta:
+        model = Student
+        fields = [
+            'name', 'student_id_num', 'id_card', 'gender', 'birth_date',
+            'phone', 'home_address', 'dormitory', 'grade_year',
+            'department', 'major', 'minor_department', 'minor_major',
+            'degree_level', 'credits_earned', 'minor_credits_earned'
+        ]
+        
+        labels = {
+            'credits_earned': '主修已修学分',
+            'minor_credits_earned': '辅修已修学分',
+        }
+        
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'student_id_num': forms.TextInput(attrs={'class': 'form-control'}),
+            'id_card': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '18位身份证号'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            # ✅ 修改电话字段为文本输入框，而不是数字输入框
+            'phone': forms.TextInput(attrs={
+                'class': 'form-control', 
+                'placeholder': '请输入手机号码',
+                'pattern': '[0-9]{11}',  # 限制为11位数字
+                'title': '请输入11位手机号码'
+            }),
+            'home_address': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'dormitory': forms.TextInput(attrs={'class': 'form-control'}),
+            'grade_year': forms.NumberInput(attrs={'class': 'form-control'}),
+            'department': forms.Select(attrs={'class': 'form-select'}),
+            'major': forms.Select(attrs={'class': 'form-select'}),
+            'minor_department': forms.Select(attrs={'class': 'form-select'}),
+            'minor_major': forms.Select(attrs={'class': 'form-select'}),
+            'degree_level': forms.TextInput(attrs={'class': 'form-control'}),
+            'credits_earned': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'minor_credits_earned': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # 设置院系选择
+        self.fields['department'].queryset = Department.objects.all()
+        self.fields['minor_department'].queryset = Department.objects.all()
+        self.fields['minor_department'].required = False
+        
+        # 设置专业选择
+        if 'department' in self.data:
+            try:
+                department_id = int(self.data.get('department'))
+                self.fields['major'].queryset = Major.objects.filter(department_id=department_id)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.department:
+            self.fields['major'].queryset = self.instance.department.major_set.all()
+        else:
+            self.fields['major'].queryset = Major.objects.none()
+
+        # 设置辅修专业选择
+        if 'minor_department' in self.data:
+            try:
+                minor_department_id = int(self.data.get('minor_department'))
+                self.fields['minor_major'].queryset = Major.objects.filter(department_id=minor_department_id)
+            except (ValueError, TypeError):
+                pass
+        elif self.instance.pk and self.instance.minor_department:
+            self.fields['minor_major'].queryset = self.instance.minor_department.major_set.all()
+        else:
+            self.fields['minor_major'].queryset = Major.objects.none()
+        
+        self.fields['minor_major'].required = False
+
+    # ✅ 添加电话号码验证
+    def clean_phone(self):
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            # 移除所有非数字字符
+            phone = ''.join(filter(str.isdigit, phone))
+            
+            # 验证长度
+            if len(phone) not in [11, 7, 8]:  # 支持手机号(11位)和固话(7-8位)
+                raise forms.ValidationError('请输入有效的电话号码')
+            
+            # 手机号验证（以1开头的11位数字）
+            if len(phone) == 11 and not phone.startswith('1'):
+                raise forms.ValidationError('手机号码应以1开头')
+                
+        return phone

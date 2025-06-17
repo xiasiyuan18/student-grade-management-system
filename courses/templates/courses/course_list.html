@@ -32,6 +32,7 @@
                     <th>课程名称</th>
                     <th>所属院系</th>
                     <th>学分</th>
+                    <th>学时</th>  <!-- ✅ 新增：学时栏 -->
                     <th>学位等级</th>
                     <th>操作</th>
                 </tr>
@@ -45,6 +46,9 @@
                     <td>
                         <span class="badge bg-info">{{ course.credits }} 学分</span>
                     </td>
+                    <td>  <!-- ✅ 新增：学时数据，等于学分数 -->
+                        <span class="badge bg-secondary">{{ course.credits }} 学时</span>
+                    </td>
                     <td>
                         {% if course.degree_level %}
                             <span class="badge bg-secondary">{{ course.get_degree_level_display }}</span>
@@ -53,13 +57,13 @@
                         {% endif %}
                     </td>
                     <td>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <a href="{% url 'courses:course-update' course.course_id %}" 
-                               class="btn btn-outline-primary" title="编辑">
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'courses:course-update' course.pk %}" 
+                               class="btn btn-outline-primary btn-sm" title="编辑">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <a href="{% url 'courses:course-delete' course.course_id %}" 
-                               class="btn btn-outline-danger" title="删除">
+                            <a href="{% url 'courses:course-delete' course.pk %}" 
+                               class="btn btn-outline-danger btn-sm" title="删除">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </div>
@@ -103,7 +107,7 @@
 {% else %}
     <div class="alert alert-info">
         <i class="bi bi-info-circle"></i> 暂无课程记录。
-        <a href="{% url 'courses:course-create' %}" class="alert-link">立即创建第一个课程</a>
+        <a href="{% url 'courses:course-create' %}" class="alert-link">立即创建第一门课程</a>
     </div>
 {% endif %}
 {% endblock %}

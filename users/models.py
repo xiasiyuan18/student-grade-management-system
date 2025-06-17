@@ -83,7 +83,14 @@ class Student(models.Model):
         verbose_name=_('学号'), max_length=50, unique=True
     )
     name = models.CharField(verbose_name=_('姓名'), max_length=100)
-    id_card = models.CharField(verbose_name=_('身份证号'), max_length=18, unique=True)
+    id_card = models.CharField(
+        max_length=18, 
+        unique=True, 
+        null=True,      # ✅ 允许数据库中为 NULL
+        blank=True,     # ✅ 允许表单中为空
+        verbose_name="身份证号",
+        help_text="18位身份证号，可选填"
+    )
     
     GENDER_CHOICES = [
         ("男", "男"),
@@ -92,9 +99,23 @@ class Student(models.Model):
     gender = models.CharField(_("性别"), max_length=2, choices=GENDER_CHOICES)
     
     birth_date = models.DateField(_("出生日期"), blank=True, null=True)
-    phone = models.CharField(_("电话"), max_length=50, blank=True, null=True)
-    dormitory = models.CharField(_("宿舍"), max_length=100, blank=True, null=True)
-    home_address = models.CharField(_("家庭地址"), max_length=255, blank=True, null=True)
+    phone = models.CharField(
+        max_length=20, 
+        null=True, 
+        blank=True, 
+        verbose_name="联系电话"
+    )
+    home_address = models.TextField(
+        null=True, 
+        blank=True, 
+        verbose_name="家庭住址"
+    )
+    dormitory = models.CharField(
+        max_length=50, 
+        null=True, 
+        blank=True, 
+        verbose_name="宿舍信息"
+    )
     grade_year = models.IntegerField(_("年级/入学年份"), blank=True, null=True)
     
     # ✨ 主修相关
@@ -131,7 +152,7 @@ class Student(models.Model):
     
     degree_level = models.CharField(_("学位等级"), max_length=20)
     credits_earned = models.DecimalField(
-        _("已修学分"), max_digits=5, decimal_places=1, default=0.0
+        _("主修已修学分"), max_digits=5, decimal_places=1, default=0.0  # ✅ 修改为更准确的描述
     )
     
     # ✨ 新增：辅修学分

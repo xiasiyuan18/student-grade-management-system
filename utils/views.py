@@ -99,7 +99,7 @@ class StudentImportView(LoginRequiredMixin, FormView):
                         errors.append(f"第 {row_num} 行：身份证号 '{id_card}' 格式不正确，应为18位数字或17位数字+X。")
                         continue
                     
-                    # 检查身份证号是否重复
+                    # 检查身份证号是否重复（只检查非空值）
                     if Student.objects.filter(id_card=id_card).exists():
                         errors.append(f"第 {row_num} 行：身份证号 '{id_card}' 已存在。")
                         continue
@@ -157,7 +157,7 @@ class StudentImportView(LoginRequiredMixin, FormView):
                     role=CustomUser.Role.STUDENT
                 )
                 
-                # ✅ 准备学生数据，空字符串转为 None
+                # ✅ 准备学生数据，确保空值正确处理
                 student_data = {
                     'user': user,
                     'student_id_num': student_id_num,
@@ -168,20 +168,21 @@ class StudentImportView(LoginRequiredMixin, FormView):
                     'birth_date': birth_date_obj,
                 }
                 
-                # ✅ 添加可选字段（只有非空时才添加）
+                # ✅ 添加可选字段（只有非空时才添加，确保空值为 None）
                 if minor_major:
                     student_data['minor_major'] = minor_major
                 if minor_department:
                     student_data['minor_department'] = minor_department
                 if phone:
                     student_data['phone'] = phone
-                if id_card:  # ✅ 确保添加身份证号
+                if id_card:  # ✅ 只有非空时才添加身份证号
                     student_data['id_card'] = id_card
                 if home_address:
                     student_data['home_address'] = home_address
                 if dormitory:
                     student_data['dormitory'] = dormitory
                 
+                # ✅ 如果字段在数据中不存在，Django 会使用字段的默认值（None）
                 Student.objects.create(**student_data)
                 success_count += 1
 

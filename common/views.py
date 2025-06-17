@@ -19,30 +19,48 @@ from .mixins import (
 
 def calculate_and_update_student_credits(student):
     """计算并更新学生的学分统计"""
-    # 获取学生所有有效的成绩记录
-    grades = Grade.objects.filter(
+    from decimal import Decimal
+    
+    # 获取学生所有有效的成绩记录（成绩≥60分才能获得学分）
+    passing_grades = Grade.objects.filter(
         student=student,
+        score__gte=60,  # 只计算及格的成绩
         teaching_assignment__course__isnull=False
     ).select_related('teaching_assignment__course')
     
-    total_credits = 0
-    earned_credits = 0
+    # 计算主修和辅修学分
+    major_credits = Decimal("0.0")
+    minor_credits = Decimal("0.0")
     
-    for grade in grades:
-        course_credits = grade.teaching_assignment.course.credits
-        total_credits += course_credits
+    for grade in passing_grades:
+        course = grade.teaching_assignment.course
+        credits = course.credits or Decimal("0.0")
         
-        # 假设60分及以上为及格，可获得学分
-        if grade.score >= 60:
-            earned_credits += course_credits
+        # 判断是主修还是辅修课程
+        if course.department == student.department:
+            # 主修院系的课程算作主修学分
+            major_credits += credits
+        elif hasattr(student, 'minor_department') and student.minor_department and course.department == student.minor_department:
+            # 辅修院系的课程算作辅修学分
+            minor_credits += credits
+        else:
+            # 其他院系的课程默认算作主修学分（选修课等）
+            major_credits += credits
     
-    # 更新学生的学分信息（如果Student模型有这些字段的话）
-    if hasattr(student, 'total_credits'):
-        student.total_credits = total_credits
-    if hasattr(student, 'earned_credits'):
-        student.earned_credits = earned_credits
-    if hasattr(student, 'save'):
-        student.save()
+    # 更新学生的学分统计
+    student.credits_earned = major_credits
+    if hasattr(student, 'minor_credits_earned'):
+        student.minor_credits_earned = minor_credits
+    
+    student.save(update_fields=["credits_earned", "minor_credits_earned"])
+    
+    print(f"更新学生 {student.name} 学分: 主修 {major_credits}, 辅修 {minor_credits}")
+    
+    return {
+        'major_credits': major_credits,
+        'minor_credits': minor_credits,
+        'total_credits': major_credits + minor_credits
+    }
 
 
 class BaseInfoQueryMixin(LoginRequiredMixin):
@@ -332,6 +350,33 @@ class StudentInfoView(StudentRequiredMixin, generic.TemplateView):
                     'teaching_assignment__teacher'
                 ).order_by('-enrollment_date')
                 context['enrollments'] = enrollments
+                
+                # ✅ 实时计算并更新学分
+                credit_info = calculate_and_update_student_credits(student_profile)
+                context['credit_info'] = credit_info
+                
+                # ✅ 获取成绩统计信息
+                from django.db.models import Avg, Count
+                grades = Grade.objects.filter(student=student_profile, score__isnull=False)
+                
+                if grades.exists():
+                    context['total_courses'] = grades.count()
+                    context['passed_courses'] = grades.filter(score__gte=60).count()
+                    context['average_score'] = grades.aggregate(avg=Avg('score'))['avg']
+                    context['grade_distribution'] = {
+                        'excellent': grades.filter(score__gte=90).count(),
+                        'good': grades.filter(score__gte=80, score__lt=90).count(),
+                        'average': grades.filter(score__gte=70, score__lt=80).count(),
+                        'pass': grades.filter(score__gte=60, score__lt=70).count(),
+                        'fail': grades.filter(score__lt=60).count(),
+                    }
+                else:
+                    context['total_courses'] = 0
+                    context['passed_courses'] = 0
+                    context['average_score'] = None
+                    context['grade_distribution'] = {
+                        'excellent': 0, 'good': 0, 'average': 0, 'pass': 0, 'fail': 0
+                    }
                 
         except Exception as e:
             context['error'] = f"获取学生信息失败: {str(e)}"

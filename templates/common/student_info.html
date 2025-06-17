@@ -74,13 +74,24 @@
                 <div class="card-body">
                     <table class="table table-borderless">
                         <tr>
-                            <td><strong>所属院系：</strong></td>
+                            <td><strong>主修院系：</strong></td>
                             <td>{{ student.department.dept_name }}</td>
                         </tr>
                         <tr>
-                            <td><strong>专业：</strong></td>
+                            <td><strong>主修专业：</strong></td>
                             <td>{{ student.major.major_name|default:"未设置" }}</td>
                         </tr>
+                        <!-- ✅ 新增：显示辅修信息 -->
+                        {% if student.minor_department or student.minor_major %}
+                        <tr>
+                            <td><strong>辅修院系：</strong></td>
+                            <td>{{ student.minor_department.dept_name|default:"未设置" }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>辅修专业：</strong></td>
+                            <td>{{ student.minor_major.major_name|default:"未设置" }}</td>
+                        </tr>
+                        {% endif %}
                         <tr>
                             <td><strong>年级：</strong></td>
                             <td>{{ student.grade_year|default:"未设置" }}</td>
@@ -89,9 +100,20 @@
                             <td><strong>学位等级：</strong></td>
                             <td>{{ student.degree_level|default:"未设置" }}</td>
                         </tr>
+                        <!-- ✅ 修改：合并为总已修学分 -->
                         <tr>
-                            <td><strong>已修学分：</strong></td>
-                            <td>{{ student.credits_earned|default:"0" }}</td>
+                            <td><strong>总已修学分：</strong></td>
+                            <td>
+                                <span class="badge bg-primary fs-6">{{ credit_info.total_credits|default:"0" }}</span>
+                                {% if student.major %}
+                                    <br><small class="text-muted">
+                                        主修要求: {{ student.major.bachelor_credits_required|default:"--" }} 学分
+                                        {% if student.minor_major %}
+                                            | 辅修要求: {{ student.minor_major.bachelor_credits_required|default:"--" }} 学分
+                                        {% endif %}
+                                    </small>
+                                {% endif %}
+                            </td>
                         </tr>
                         <tr>
                             <td><strong>宿舍信息：</strong></td>
@@ -102,6 +124,56 @@
             </div>
         </div>
     </div>
+
+    <!-- 学分详情卡片 -->
+    {% if credit_info %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="bi bi-graph-up"></i> 学分详情</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="text-primary">主修学分</h6>
+                                <h4 class="text-primary">{{ credit_info.major_credits|default:"0" }}</h4>
+                                {% if student.major %}
+                                    <small class="text-muted">
+                                        / {{ student.major.bachelor_credits_required|default:"--" }} (要求)
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% if credit_info.minor_credits > 0 or student.minor_major %}
+                        <div class="col-md-4">
+                            <div class="border rounded p-3 h-100">
+                                <h6 class="text-success">辅修学分</h6>
+                                <h4 class="text-success">{{ credit_info.minor_credits|default:"0" }}</h4>
+                                {% if student.minor_major %}
+                                    <small class="text-muted">
+                                        / {{ student.minor_major.bachelor_credits_required|default:"--" }} (要求)
+                                    </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                        {% else %}
+                        <div class="col-md-8">
+                        {% endif %}
+                            <div class="border rounded p-3 h-100 bg-light">
+                                <h6 class="text-info">总学分</h6>
+                                <h4 class="text-info">{{ credit_info.total_credits|default:"0" }}</h4>
+                                <small class="text-muted">已获得学分总计</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- 联系信息 -->
     <div class="row mb-4">
@@ -126,7 +198,7 @@
 
     <!-- 选课信息 -->
     {% if enrollments %}
-    <div class="card">
+    <div class="card mb-4">
         <div class="card-header">
             <h5><i class="bi bi-book"></i> 选课信息</h5>
         </div>
@@ -168,6 +240,53 @@
                         {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 成绩统计部分 -->
+    {% if total_courses > 0 %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="bi bi-bar-chart-line"></i> 成绩统计</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <table class="table table-borderless">
+                        <tr>
+                            <td><strong>修读课程：</strong></td>
+                            <td>{{ total_courses }} 门</td>
+                        </tr>
+                        <tr>
+                            <td><strong>通过课程：</strong></td>
+                            <td>{{ passed_courses }} 门</td>
+                        </tr>
+                        <tr>
+                            <td><strong>平均分：</strong></td>
+                            <td>
+                                {% if average_score %}
+                                    <span class="badge bg-warning">{{ average_score|floatformat:1 }}</span>
+                                {% else %}
+                                    未计算
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    {% if grade_distribution %}
+                    <h6>成绩分布</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge bg-success">优秀(90+): {{ grade_distribution.excellent }}</span>
+                        <span class="badge bg-primary">良好(80-89): {{ grade_distribution.good }}</span>
+                        <span class="badge bg-info">中等(70-79): {{ grade_distribution.average }}</span>
+                        <span class="badge bg-warning">及格(60-69): {{ grade_distribution.pass }}</span>
+                        <span class="badge bg-danger">不及格(<60): {{ grade_distribution.fail }}</span>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>

@@ -459,3 +459,140 @@ def get_queryset(self):
         )
     
     return queryset
+
+import pandas as pd
+from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.shortcuts import redirect
+from django.urls import reverse_lazy
+from django.views.generic import FormView
+from datetime import datetime
+
+from departments.models import Department, Major
+from users.models import CustomUser, Student
+# Remove the problematic import - forms module doesn't exist
+# from .forms import StudentImportForm
+# ✅ 修改：使用现有的 AdminRequiredMixin 替代不存在的函数
+from common.mixins import AdminRequiredMixin
+from django import forms
+
+# Define the form class directly here since forms module doesn't exist
+class StudentImportForm(forms.Form):
+    file = forms.FileField(
+        label="选择Excel文件",
+        help_text="请上传包含学生信息的Excel文件(.xlsx格式)"
+    )
+
+
+class StudentImportView(AdminRequiredMixin, FormView):  # ✅ 使用 AdminRequiredMixin
+    template_name = "utils/student_import.html"
+    form_class = StudentImportForm
+    success_url = reverse_lazy("users:student-list")
+
+    # ✅ 删除：不再需要 dispatch 方法，AdminRequiredMixin 会自动处理权限
+    # def dispatch(self, request, *args, **kwargs):
+    #     if not is_admin_or_teacher_or_manager(request.user):
+    #         messages.error(request, "您没有权限访问此页面。")
+    #         return redirect("core:home")
+    #     return super().dispatch(request, *args, **kwargs)
+
+    @transaction.atomic
+    def form_valid(self, form):
+        file = form.cleaned_data["file"]
+
+        try:
+            df = pd.read_excel(file).astype(str).replace('nan', '')
+        except Exception as e:
+            messages.error(self.request, f"文件读取失败，请确保是有效的 .xlsx 文件。错误: {e}")
+            return super().form_invalid(form)
+
+        required_columns = {
+            "username", "password", "name", "student_id_num", "department_name", "major_name"
+        }
+        
+        if not required_columns.issubset(df.columns):
+            missing_cols = required_columns - set(df.columns)
+            messages.error(self.request, f"文件缺少必需的列: {', '.join(missing_cols)}")
+            return super().form_invalid(form)
+
+        errors = []
+        for index, row in df.iterrows():
+            row_num = index + 2
+            try:
+                # --- 获取数据 ---
+                username = row["username"].strip()
+                password = row["password"].strip()
+                name = row["name"].strip()
+                student_id_num = row["student_id_num"].strip()
+                department_name = row["department_name"].strip()
+                major_name = row["major_name"].strip()
+                
+                # 新增：获取辅修院系和专业
+                minor_department_name = row.get("minor_department_name", "").strip()
+                minor_major_name = row.get("minor_major_name", "").strip()
+
+                # --- 数据校验 ---
+                if not all([username, password, name, student_id_num, department_name, major_name]):
+                    errors.append(f"第 {row_num} 行：必填字段（username, password, name, student_id_num, department_name, major_name）不能为空。")
+                    continue
+                
+                if CustomUser.objects.filter(username=username).exists() or Student.objects.filter(student_id_num=student_id_num).exists():
+                    errors.append(f"第 {row_num} 行：用户名 '{username}' 或学号 '{student_id_num}' 已存在。")
+                    continue
+
+                # --- 核心逻辑：根据院系和专业名查找对象 ---
+                try:
+                    department = Department.objects.get(dept_name=department_name)  # ✅ 修正字段名
+                    major = Major.objects.get(major_name=major_name, department=department)  # ✅ 修正字段名
+                except Department.DoesNotExist:
+                    errors.append(f"第 {row_num} 行：主修院系 '{department_name}' 不存在。")
+                    continue
+                except Major.DoesNotExist:
+                    errors.append(f"第 {row_num} 行：在 '{department_name}' 院系下找不到主修专业 '{major_name}'。")
+                    continue
+
+                minor_major = None
+                minor_department = None
+                if minor_department_name and minor_major_name:
+                    try:
+                        minor_department = Department.objects.get(dept_name=minor_department_name)  # ✅ 修正字段名
+                        minor_major = Major.objects.get(major_name=minor_major_name, department=minor_department)  # ✅ 修正字段名
+                    except Department.DoesNotExist:
+                        errors.append(f"第 {row_num} 行：辅修院系 '{minor_department_name}' 不存在。")
+                        continue
+                    except Major.DoesNotExist:
+                        errors.append(f"第 {row_num} 行：在 '{minor_department_name}' 院系下找不到辅修专业 '{minor_major_name}'。")
+                        continue
+                
+                # --- 创建对象 ---
+                user = CustomUser.objects.create_user(
+                    username=username, 
+                    password=password, 
+                    first_name=name,  # ✅ 使用 first_name 而不是 full_name
+                    role=CustomUser.Role.STUDENT  # ✅ 使用正确的角色枚举
+                )
+                Student.objects.create(
+                    user=user, 
+                    student_id_num=student_id_num,  # ✅ 修正字段名
+                    name=name,
+                    major=major, 
+                    department=department,
+                    minor_major=minor_major,
+                    minor_department=minor_department,
+                    gender=row.get("gender", "男").strip(),
+                    birth_date=pd.to_datetime(row.get('birth_date'), errors='coerce').date() if row.get('birth_date') else None,
+                    phone=row.get("phone", "").strip(),
+                )
+
+            except Exception as e:
+                errors.append(f"处理第 {row_num} 行时发生未知错误: {e}")
+
+        if errors:
+            transaction.set_rollback(True)
+            for error in errors:
+                messages.error(self.request, error)
+            return super().form_invalid(form)
+
+        messages.success(self.request, f"学生批量导入成功！共导入 {len(df)} 条记录。")
+        return super().form_valid(form)

@@ -54,19 +54,21 @@
     </div>
 </div>
 <div class="row">
-    <div class="col-lg-8 mb-4">
+    <!-- 左侧图表: 热门选修课程 -->
+    <div class="col-lg-7 mb-4">
         <div class="card shadow">
-            <div class="card-header">课程选修人数统计</div>
+            <div class="card-header">热门选修课程 Top 10</div>
             <div class="card-body" style="height: 400px;">
                 <canvas id="courseDistributionChart"></canvas>
             </div>
         </div>
     </div>
-    <div class="col-lg-4 mb-4">
+    <!-- 【已修改】右侧图表: 全校学生GPA分布 -->
+    <div class="col-lg-5 mb-4">
         <div class="card shadow">
-            <div class="card-header">全校成绩分布</div>
+            <div class="card-header">全校学生GPA分布</div>
             <div class="card-body" style="height: 400px;">
-                <canvas id="gradeDistributionChart"></canvas>
+                <canvas id="gpaDistributionChart"></canvas>
             </div>
         </div>
     </div>
@@ -77,8 +79,8 @@
 <h2>我教的课程</h2>
 {% if teacher_courses %}
     <ul class="list-group mb-4">
-        {% for course in teacher_courses %}
-            <li class="list-group-item">{{ course.name }}</li>
+        {% for assignment in teacher_courses %}
+            <li class="list-group-item">{{ assignment.course.course_name }} ({{ assignment.semester }})</li>
         {% endfor %}
     </ul>
 {% else %}
@@ -107,10 +109,10 @@
             </tr>
         </thead>
         <tbody>
-            {% for enrollment in enrollments %}
+            {% for grade in enrollments %}
                 <tr>
-                    <td>{{ enrollment.course.name }}</td>
-                    <td>{{ enrollment.score }}</td>
+                    <td>{{ grade.course.course_name }}</td>
+                    <td>{{ grade.score|default:"未录入" }}</td>
                 </tr>
             {% endfor %}
         </tbody>
@@ -130,7 +132,7 @@
 {# 使用 json_script 标签安全地传递数据 #}
 {% if request.user.is_admin %}
     {{ course_distribution_data|json_script:"course-data" }}
-    {{ grade_distribution_data|json_script:"grade-data" }}
+    {{ gpa_distribution_data|json_script:"gpa-data" }}  {# 【已修改】使用新的数据 #}
 {% elif request.user.is_teacher %}
     {{ teacher_grade_distribution_data|json_script:"teacher-grade-data" }}
 {% endif %}
@@ -139,26 +141,24 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const chartColors = [
-        'rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)',
-        'rgba(255, 206, 86, 0.6)', 'rgba(255, 159, 64, 0.6)',
-        'rgba(153, 102, 255, 0.6)', 'rgba(255, 99, 132, 0.6)'
+        'rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)',
+        'rgba(255, 206, 86, 0.7)', 'rgba(255, 159, 64, 0.7)',
+        'rgba(153, 102, 255, 0.7)', 'rgba(255, 99, 132, 0.7)',
+        'rgba(40, 167, 69, 0.7)', 'rgba(0, 123, 255, 0.7)',
+        'rgba(253, 126, 20, 0.7)', 'rgba(108, 117, 125, 0.7)'
     ];
-    const chartBorderColors = [
-        'rgb(54, 162, 235)', 'rgb(75, 192, 192)',
-        'rgb(255, 206, 86)', 'rgb(255, 159, 64)',
-        'rgb(153, 102, 255)', 'rgb(255, 99, 132)'
-    ];
+    const chartBorderColors = chartColors.map(color => color.replace('0.7', '1'));
 
-    function renderChart(canvasId, chartType, data, options = {}) {
+    function renderChart(canvasId, chartType, dataInfo, chartOptions = {}) {
         const ctx = document.getElementById(canvasId);
         if (!ctx) return;
 
-        const chartData = JSON.parse(document.getElementById(data.id)?.textContent || '{}');
+        const chartData = JSON.parse(document.getElementById(dataInfo.id)?.textContent || '{}');
         if (!chartData.labels || chartData.labels.length === 0) {
             const canvas = ctx.getContext('2d');
             canvas.font = "16px sans-serif";
             canvas.textAlign = "center";
-            canvas.fillText(data.emptyMessage, ctx.width / 2, ctx.height / 2);
+            canvas.fillText(dataInfo.emptyMessage, ctx.width / 2, ctx.height / 2);
             return;
         }
 
@@ -167,34 +167,37 @@ document.addEventListener('DOMContentLoaded', function () {
             data: {
                 labels: chartData.labels,
                 datasets: [{
-                    label: data.label,
+                    label: dataInfo.label,
                     data: chartData.data,
                     backgroundColor: chartColors,
                     borderColor: chartBorderColors,
                     borderWidth: 1
                 }]
             },
-            options: { ...options, responsive: true, maintainAspectRatio: false }
+            options: { ...chartOptions, responsive: true, maintainAspectRatio: false }
         });
     }
 
     // 渲染管理员图表
     if (document.getElementById('course-data')) {
+        // 左侧图表
         renderChart('courseDistributionChart', 'bar', {
             id: 'course-data',
             label: '选修人数',
             emptyMessage: '暂无课程选修数据'
         }, {
-            scales: {
-                y: { beginAtZero: true, ticks: { precision: 0 } }
-            },
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
             plugins: { legend: { display: false } }
         });
 
-        renderChart('gradeDistributionChart', 'pie', {
-            id: 'grade-data',
+        // 【已修改】右侧图表
+        renderChart('gpaDistributionChart', 'bar', { // 改为 bar chart
+            id: 'gpa-data', // 使用新的数据ID
             label: '学生人数',
-            emptyMessage: '暂无成绩分布数据'
+            emptyMessage: '暂无GPA分布数据'
+        }, {
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+            plugins: { legend: { display: false } }
         });
     }
     

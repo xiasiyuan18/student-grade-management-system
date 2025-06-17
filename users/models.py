@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-
+from decimal import Decimal
 
 # --- 1. 自定义用户管理器 (CustomUserManager) ---
 class CustomUserManager(BaseUserManager):
@@ -138,6 +138,33 @@ class Student(models.Model):
     minor_credits_earned = models.DecimalField(
         _("辅修已修学分"), max_digits=5, decimal_places=1, default=0.0
     )
+    def calculate_cumulative_gpa(self):
+        """计算并返回该学生的累计GPA"""
+        # 预加载相关数据，提高效率
+        grades = self.grades_received.filter(gpa__isnull=False).select_related(
+            'teaching_assignment__course'
+        )
+
+        total_credit_points = Decimal("0.0")
+        total_credits = Decimal("0.0")
+
+        if not grades.exists():
+            return Decimal("0.0")
+
+        for grade in grades:
+            # 确保课程和学分存在
+            course = grade.course
+            if course and course.credits:
+                credits = Decimal(course.credits)
+                if credits > 0:
+                    total_credit_points += grade.gpa * credits
+                    total_credits += credits
+        
+        if total_credits == 0:
+            return Decimal("0.0")
+        
+        # 返回最终的累计GPA，保留两位小数
+        return round(total_credit_points / total_credits, 2)
 
     def __str__(self):
         return f"{self.name or self.user.username} (学号: {self.student_id_num})"

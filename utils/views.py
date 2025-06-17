@@ -1,137 +1,207 @@
-# utils/views.py (已修正)
+# utils/views.py
 
 import pandas as pd
-from django.shortcuts import render, redirect
-from django.views import generic
 from django.contrib import messages
-from django.db import transaction, IntegrityError
-from django.contrib.auth import get_user_model
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db import transaction
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.views.generic import FormView
+from datetime import datetime
 
-from .forms import FileUploadForm
-from common.mixins import AdminRequiredMixin
-from users.models import Student
 from departments.models import Department, Major
+from users.models import CustomUser, Student
+from .forms import StudentImportForm
+from users.permissions import is_admin_or_teacher_or_manager
 
-User = get_user_model()
 
-class StudentBulkImportView(AdminRequiredMixin, generic.FormView):
-    """
-    管理员批量导入学生的视图 (更健壮的版本)。
-    """
-    template_name = 'utils/student_import.html'
-    form_class = FileUploadForm
-    success_url = reverse_lazy('users:student-list')
+class StudentImportView(LoginRequiredMixin, FormView):
+    template_name = "utils/student_import.html"
+    form_class = StudentImportForm
+    success_url = reverse_lazy("users:student-list")
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = '批量导入学生'
-        return context
+    def dispatch(self, request, *args, **kwargs):
+        if not (hasattr(request.user, 'is_authenticated') and request.user.is_authenticated and is_admin_or_teacher_or_manager(request.user)):
+            messages.error(request, "您没有权限访问此页面。")
+            return redirect("core:home")
+        return super().dispatch(request, *args, **kwargs)
 
+    @transaction.atomic
     def form_valid(self, form):
-        file = form.cleaned_data['file']
-        required_columns = ['username', 'password', 'name', 'student_id_num', 'department_name', 'major_name']
-        
+        file = form.cleaned_data["file"]
+
         try:
-            if file.name.endswith('.xlsx'):
-                df = pd.read_excel(file, dtype=str)
-            elif file.name.endswith('.csv'):
-                df = pd.read_csv(file, dtype=str)
-            else:
-                messages.error(self.request, "文件格式不支持，请上传 .xlsx 或 .csv 文件。")
-                return redirect('utils:student-bulk-import')
-
-            if not all(col in df.columns for col in required_columns):
-                missing_cols = ", ".join([col for col in required_columns if col not in df.columns])
-                messages.error(self.request, f"文件格式错误：您的文件缺少必要的列: {missing_cols}。请下载并使用模板。")
-                return redirect('utils:student-bulk-import')
-
-            df.fillna('', inplace=True)
+            # ✅ 改进：保持原始数据类型，不要全部转为字符串
+            df = pd.read_excel(file)
+            # ✅ 确保 id_card 在字符串处理列表中
+            string_columns = ["username", "password", "name", "student_id_num", 
+                            "department_name", "major_name", "minor_department_name", 
+                            "minor_major_name", "gender", "phone", "id_card", 
+                            "home_address", "dormitory"]
             
-            users_to_create = []
-            students_to_link = [] # 用于存储学生数据和其关联的用户名
-            errors = []
-            
-            # --- 核心修正逻辑开始 ---
-            with transaction.atomic():
-                # 阶段一：数据校验和准备
-                for index, row in df.iterrows():
-                    row_num = index + 2
+            for col in string_columns:
+                if col in df.columns:
+                    df[col] = df[col].astype(str).replace('nan', '')
                     
-                    # 校验必填字段
-                    if any(pd.isna(row.get(field)) or str(row.get(field)).strip() == '' for field in required_columns):
-                        errors.append(f"第 {row_num} 行：缺少必填字段（用户名、密码、姓名、学号、院系、专业）。")
-                        continue
-                    
-                    # 校验用户名和学号是否已存在
-                    if User.objects.filter(username=row['username']).exists() or Student.objects.filter(student_id_num=row['student_id_num']).exists():
-                        errors.append(f"第 {row_num} 行：用户名 '{row['username']}' 或学号 '{row['student_id_num']}' 已存在。")
-                        continue
-                    
-                    # 校验院系和专业是否存在
-                    try:
-                        department = Department.objects.get(dept_name=row['department_name'])
-                        major = Major.objects.get(major_name=row['major_name'], department=department)
-                    except Department.DoesNotExist:
-                        errors.append(f"第 {row_num} 行：院系 '{row['department_name']}' 不存在。")
-                        continue
-                    except Major.DoesNotExist:
-                        errors.append(f"第 {row_num} 行：在 '{row['department_name']}' 院系下找不到专业 '{row['major_name']}'。")
-                        continue
-
-                    # 准备 User 对象（不保存）
-                    user = User(username=row['username'], role=User.Role.STUDENT)
-                    user.set_password(row['password'])
-                    users_to_create.append(user)
-
-                    # 准备 Student 数据，并暂存用户名用于后续关联
-                    student_data = {
-                        'username': row['username'], # 关键：暂存用户名
-                        'data': {
-                            'name': row['name'], 'student_id_num': row['student_id_num'],
-                            'id_card': row.get('id_card', ''), 'gender': row.get('gender', '男'),
-                            'department': department, 'major': major,
-                            'birth_date': pd.to_datetime(row.get('birth_date'), errors='coerce').date() if row.get('birth_date') else None,
-                            'phone': row.get('phone', ''),
-                        }
-                    }
-                    students_to_link.append(student_data)
-
-                # 如果在校验阶段发现任何错误，则中断并回滚事务
-                if errors:
-                    raise IntegrityError("数据校验失败")
-
-                # 阶段二：批量创建用户（不依赖返回值）
-                User.objects.bulk_create(users_to_create)
-
-                # 阶段三：根据用户名，重新从数据库获取刚创建的用户（确保获得ID）
-                usernames = [user.username for user in users_to_create]
-                user_map = {user.username: user for user in User.objects.filter(username__in=usernames)}
-
-                # 阶段四：准备学生对象列表，关联上已保存的用户
-                students_to_create = []
-                for student_info in students_to_link:
-                    username = student_info['username']
-                    user_obj = user_map.get(username)
-                    if user_obj: # 确保用户已成功创建并找到
-                        student_instance = Student(user=user_obj, **student_info['data'])
-                        students_to_create.append(student_instance)
-
-                # 阶段五：批量创建学生
-                if students_to_create:
-                    Student.objects.bulk_create(students_to_create)
-
-                if not errors:
-                    messages.success(self.request, f"成功导入 {len(students_to_create)} 名学生！")
-
-        except IntegrityError:
-            for error in errors:
-                messages.error(self.request, error)
-            messages.error(self.request, "导入失败，事务已回滚。请修正文件中的错误后重试。")
-            return redirect('utils:student-bulk-import')
-        
         except Exception as e:
-            messages.error(self.request, f"处理文件时发生未知错误: {e}")
-            return redirect('utils:student-bulk-import')
+            messages.error(self.request, f"文件读取失败，请确保是有效的 .xlsx 文件。错误: {e}")
+            return super().form_invalid(form)
 
+        required_columns = {
+            "username", "password", "name", "student_id_num", "department_name", "major_name"
+        }
+        
+        if not required_columns.issubset(df.columns):
+            missing_cols = required_columns - set(df.columns)
+            messages.error(self.request, f"文件缺少必需的列: {', '.join(missing_cols)}")
+            return super().form_invalid(form)
+
+        errors = []
+        success_count = 0
+        
+        for index, row in df.iterrows():
+            row_num = index + 2
+            try:
+                # --- 获取和清理数据 ---
+                def get_clean_value(row, key, default=""):
+                    """获取并清理单元格值"""
+                    value = row.get(key, default)
+                    if pd.isna(value) or value == 'nan' or value == '':
+                        return ""
+                    return str(value).strip()
+
+                username = get_clean_value(row, "username")
+                password = get_clean_value(row, "password")
+                name = get_clean_value(row, "name")
+                student_id_num = get_clean_value(row, "student_id_num")
+                department_name = get_clean_value(row, "department_name")
+                major_name = get_clean_value(row, "major_name")
+                
+                # ✅ 确保处理 id_card 字段
+                minor_department_name = get_clean_value(row, "minor_department_name")
+                minor_major_name = get_clean_value(row, "minor_major_name")
+                gender = get_clean_value(row, "gender", "男")
+                phone = get_clean_value(row, "phone")
+                id_card = get_clean_value(row, "id_card")  # ✅ 添加身份证号处理
+                home_address = get_clean_value(row, "home_address")
+                dormitory = get_clean_value(row, "dormitory")
+
+                # --- 数据校验 ---
+                if not all([username, password, name, student_id_num, department_name, major_name]):
+                    errors.append(f"第 {row_num} 行：必填字段不能为空。")
+                    continue
+                
+                # ✅ 身份证号验证：确保身份证号唯一且格式正确
+                if id_card:
+                    # 验证身份证号格式（18位数字或17位数字+X）
+                    import re
+                    if not re.match(r'^\d{17}[\dXx]$', id_card):
+                        errors.append(f"第 {row_num} 行：身份证号 '{id_card}' 格式不正确，应为18位数字或17位数字+X。")
+                        continue
+                    
+                    # 检查身份证号是否重复
+                    if Student.objects.filter(id_card=id_card).exists():
+                        errors.append(f"第 {row_num} 行：身份证号 '{id_card}' 已存在。")
+                        continue
+                
+                # 检查用户名和学号是否已存在
+                if CustomUser.objects.filter(username=username).exists():
+                    errors.append(f"第 {row_num} 行：用户名 '{username}' 已存在。")
+                    continue
+                    
+                if Student.objects.filter(student_id_num=student_id_num).exists():
+                    errors.append(f"第 {row_num} 行：学号 '{student_id_num}' 已存在。")
+                    continue
+
+                # --- 查找院系和专业 ---
+                try:
+                    department = Department.objects.get(dept_name=department_name)
+                except Department.DoesNotExist:
+                    errors.append(f"第 {row_num} 行：主修院系 '{department_name}' 不存在。")
+                    continue
+                    
+                try:
+                    major = Major.objects.get(major_name=major_name, department=department)
+                except Major.DoesNotExist:
+                    errors.append(f"第 {row_num} 行：在 '{department_name}' 院系下找不到主修专业 '{major_name}'。")
+                    continue
+
+                # 处理辅修信息
+                minor_major = None
+                minor_department = None
+                if minor_department_name and minor_major_name:
+                    try:
+                        minor_department = Department.objects.get(dept_name=minor_department_name)
+                        minor_major = Major.objects.get(major_name=minor_major_name, department=minor_department)
+                    except (Department.DoesNotExist, Major.DoesNotExist):
+                        # 辅修信息错误不阻止导入，只是不设置辅修
+                        minor_major = None
+                        minor_department = None
+                
+                # 处理出生日期
+                birth_date_obj = None
+                birth_date_val = row.get('birth_date')
+                if pd.notna(birth_date_val):
+                    try:
+                        birth_date_obj = pd.to_datetime(birth_date_val, errors='coerce').date()
+                        if pd.isna(birth_date_obj):
+                            birth_date_obj = None
+                    except:
+                        birth_date_obj = None
+                
+                # --- 创建用户和学生档案 ---
+                user = CustomUser.objects.create_user(
+                    username=username, 
+                    password=password, 
+                    first_name=name,
+                    role=CustomUser.Role.STUDENT
+                )
+                
+                # ✅ 准备学生数据，空字符串转为 None
+                student_data = {
+                    'user': user,
+                    'student_id_num': student_id_num,
+                    'name': name,
+                    'major': major,
+                    'department': department,
+                    'gender': gender if gender else "男",
+                    'birth_date': birth_date_obj,
+                }
+                
+                # ✅ 添加可选字段（只有非空时才添加）
+                if minor_major:
+                    student_data['minor_major'] = minor_major
+                if minor_department:
+                    student_data['minor_department'] = minor_department
+                if phone:
+                    student_data['phone'] = phone
+                if id_card:  # ✅ 确保添加身份证号
+                    student_data['id_card'] = id_card
+                if home_address:
+                    student_data['home_address'] = home_address
+                if dormitory:
+                    student_data['dormitory'] = dormitory
+                
+                Student.objects.create(**student_data)
+                success_count += 1
+
+            except Exception as e:
+                errors.append(f"处理第 {row_num} 行时发生未知错误: {e}")
+                continue
+
+        # 错误处理
+        if errors:
+            transaction.set_rollback(True)
+            messages.warning(self.request, f"导入过程中遇到 {len(errors)} 个错误，已回滚所有操作。")
+            
+            # 显示前5个错误
+            for error in errors[:5]:
+                messages.error(self.request, error)
+            
+            if len(errors) > 5:
+                messages.error(self.request, f"还有 {len(errors) - 5} 个错误未显示...")
+                
+            return super().form_invalid(form)
+
+        messages.success(self.request, f"学生批量导入成功！共导入 {success_count} 条记录。")
         return super().form_valid(form)

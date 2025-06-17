@@ -1,46 +1,77 @@
 {% extends 'base.html' %}
-{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}批量导入学生{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">{{ page_title }}</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="{% url 'users:student-list' %}" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> 返回学生列表
-            </a>
-        </div>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>批量导入学生</h2>
+        <a href="{% url 'users:student-list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> 返回学生列表
+        </a>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">操作说明</h5>
-            <p>请下载模板文件，按照规定的格式填写学生信息，然后上传文件进行批量导入。</p>
-            
-            <div class="alert alert-info">
-                <strong>模板列名 (必填项加*):</strong>
-                <ul>
-                    <li><strong>*username</strong> (登录用户名)</li>
-                    <li><strong>*password</strong> (初始密码)</li>
-                    <li><strong>*name</strong> (学生姓名)</li>
-                    <li><strong>*student_id_num</strong> (学号)</li>
-                    <li><strong>*department_name</strong> (院系全称, 如 "计算机科学与技术学院")</li>
-                    <li><strong>*major_name</strong> (专业全称, 如 "软件工程")</li>
-                    <li>id_card (身份证号, 可选)</li>
-                    <li>gender (性别, '男'或'女', 可选)</li>
-                    <li>birth_date (出生日期, 格式 YYYY-MM-DD, 可选)</li>
-                    <li>phone (联系电话, 可选)</li>
-                </ul>
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
+        {% endfor %}
+    {% endif %}
 
-            <form method="post" enctype="multipart/form-data">
-                {% csrf_token %}
-                {{ form|crispy }}
-                <button type="submit" class="btn btn-primary mt-3">
-                    <i class="bi bi-upload"></i> 上传并导入
-                </button>
-            </form>
+    <div class="card">
+        <div class="card-header">
+            操作说明
+        </div>
+        <div class="card-body">
+            <p class="card-text">请下载模板文件，按照规定的格式填写学生信息，然后上传文件进行批量导入。</p>
+            <div class="alert alert-info">
+                <h5 class="alert-heading">模板列名 (大小写敏感):</h5>
+                <ul>
+                    <li><strong>username</strong> (必需, 登录用户名, 建议使用学号)</li>
+                    <li><strong>password</strong> (必需, 初始密码)</li>
+                    <li><strong>name</strong> (必需, 学生姓名)</li>
+                    <li><strong>student_id_num</strong> (必需, 学号)</li>
+                    <li><strong>department_name</strong> (必需, 主修专业所属院系的全称)</li>
+                    <li><strong>major_name</strong> (必需, 主修专业全称, 如 "计算机科学与技术")</li>
+                    <hr>
+                    <li><strong>minor_department_name</strong> (可选, 辅修专业所属院系的全称)</li>
+                    <li><strong>minor_major_name</strong> (可选, 辅修专业全称, 如 "金融学")</li>
+                    <li class="text-muted"><small>注意: 如果要填写辅修信息，则辅修院系和辅修专业必须同时提供。</small></li>
+                    <hr>
+                    <li><strong>id_card</strong> (可选, 身份证号, 18位数字)</li>
+                    <li><strong>gender</strong> (可选, 填写 "男" 或 "女")</li>
+                    <li><strong>birth_date</strong> (可选, 出生日期, 格式: YYYY-MM-DD)</li>
+                    <li><strong>phone</strong> (可选, 联系电话)</li>
+                    <li><strong>home_address</strong> (可选, 家庭住址)</li>
+                    <li><strong>dormitory</strong> (可选, 宿舍信息)</li>
+                </ul>
+                <div class="alert alert-warning mt-3">
+                    <h6>重要提示：</h6>
+                    <ul class="mb-0">
+                        <li>身份证号必须唯一，不能重复</li>
+                        <li>学号和用户名必须唯一，不能重复</li>
+                        <li>空值字段可以留空，不要填写空格</li>
+                        <li>辅修信息要么都填，要么都不填</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     </div>
+
+    <form method="post" enctype="multipart/form-data" class="mt-4">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="{{ form.file.id_for_label }}" class="form-label"><strong>选择 Excel 文件*</strong></label>
+            {{ form.file }}
+            <div class="form-text">请确保文件格式与模板一致。支持 .xlsx 格式。</div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-upload"></i> 上传并导入
+        </button>
+    </form>
 </div>
 {% endblock %}

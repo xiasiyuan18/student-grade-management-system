@@ -90,3 +90,23 @@ class IsAdminRole(BasePermission):
 
     # def has_object_permission(self, request, view, obj):
     #     return self.has_permission(request, view)
+
+
+# ✅ 新增：添加缺失的权限检查函数
+def is_admin_or_teacher_or_manager(user):
+    """
+    检查用户是否为管理员、教师或管理人员。
+    这个函数用于视图中的权限检查。
+    """
+    if not user.is_authenticated:
+        return False
+    
+    # 检查是否为超级用户或管理员
+    if user.is_superuser or user.is_staff:
+        return True
+    
+    # 检查用户角色
+    if hasattr(user, 'role'):
+        return user.role in [CustomUser.Role.ADMIN, CustomUser.Role.TEACHER]
+    
+    return False

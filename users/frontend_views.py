@@ -30,22 +30,38 @@ User = get_user_model()
 class StudentListView(AdminRequiredMixin, SensitiveInfoMixin, generic.ListView):
     model = Student
     template_name = 'users/student_list.html'
-    context_object_name = 'student_list'
-    paginate_by = 15
+    context_object_name = 'students'
+    paginate_by = 15  # 每页显示15条记录
 
     def get_queryset(self):
-        queryset = Student.objects.select_related('user', 'major', 'department').order_by('-user__date_joined')
-        search_query = self.request.GET.get('q')
+        """
+        重写此方法以支持搜索功能。
+        """
+        # ✅ 确保我们从完整的学生列表开始
+        # 使用 select_related 优化数据库查询，一次性获取关联对象
+        queryset = Student.objects.select_related(
+            'user', 'department', 'major', 'minor_major'
+        ).order_by('student_id_num')
+
+        # 获取 GET 请求中的搜索参数 'q'
+        search_query = self.request.GET.get('q', None)
+        
         if search_query:
+            # 如果有搜索词，则进行多字段模糊查询
             queryset = queryset.filter(
                 Q(name__icontains=search_query) |
                 Q(student_id_num__icontains=search_query) |
                 Q(user__username__icontains=search_query) |
-                Q(major__major_name__icontains=search_query)
+                Q(major__major_name__icontains=search_query) |
+                Q(department__dept_name__icontains=search_query)
             )
+        
         return queryset
-    
+
     def get_context_data(self, **kwargs):
+        """
+        将搜索词传递到模板，以便在搜索框中显示。
+        """
         context = super().get_context_data(**kwargs)
         context['search_query'] = self.request.GET.get('q', '')
         return context

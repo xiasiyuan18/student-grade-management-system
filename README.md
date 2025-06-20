@@ -17,13 +17,13 @@
 
 二 🛠️ 技术栈与开发环境
 
-操作系统：跨平台，可在 Windows, macOS, Linux 上运行。
+操作系统：跨平台，可在` Windows`, `macOS`, `Linux `上运行。
 
-**编程语言**：Python 3.8+
+**编程语言**：`Python 3.8+`
 
-**Web 框架**：Django 4.2+
+**Web 框架**：`Django 4.2+`
 
-**数据库**: MySQL 8.0.x
+**数据库**: `MySQL 8.0.x`
 
 
 开发环境默认使用 MySQL

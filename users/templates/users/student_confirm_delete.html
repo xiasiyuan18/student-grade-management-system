@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}确认删除{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">确认删除</h1>
+</div>
+
+{# Django的通用删除视图（DeleteView）默认传递的上下文变量名为 object #}
+<p>你确定要删除学生 "<strong>{{ object.username }}</strong>" 吗？此操作不可恢复。</p>
+
+<form method="post">
+    {# 关键：为防止跨站请求伪造，所有POST表单必须包含此标签 #}
+    {% csrf_token %}
+    
+    <button type="submit" class="btn btn-danger">确认删除</button>
+    <a href="{% url 'users:student-list' %}" class="btn btn-secondary">取消</a>
+</form>
+
+{% endblock %}

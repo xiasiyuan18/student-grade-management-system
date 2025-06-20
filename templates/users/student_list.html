@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">学生管理</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'utils:student-bulk-import' %}" class="btn btn-sm btn-outline-info me-2">
+                <i class="bi bi-cloud-upload"></i> 批量导入学生
+            </a>
+            <a href="{% url 'users:student-export-excel' %}" class="btn btn-sm btn-outline-success me-2">
+                <i class="bi bi-file-earmark-excel"></i> 导出为 Excel
+            </a>
+            <a href="{% url 'users:student-create' %}" class="btn btn-success">
+                <i class="bi bi-person-plus-fill"></i> 添加新学生
+            </a>
+        </div>
+    </div>
+
+    <!-- 搜索表单 -->
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="按姓名、学号、用户名或专业搜索..." value="{{ search_query|default:'' }}">
+            <button class="btn btn-primary" type="submit">
+                <i class="bi bi-search"></i> 搜索
+            </button>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>性别</th>
+                    <th>主修院系</th>
+                    <th>主修专业</th>
+                    <th>辅修专业</th>
+                    <th>入学年份</th>
+                    <th>联系电话</th>
+                    <th>学分情况</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td><code>{{ student.student_id_num }}</code></td>
+                    <td><strong>{{ student.name }}</strong></td>
+                    <td>
+                        <span class="badge bg-{{ student.gender|default:'secondary' }}">
+                            {{ student.get_gender_display|default:'未设置' }}
+                        </span>
+                    </td>
+                    <td>{{ student.department.dept_name|default:'-' }}</td>
+                    <td>{{ student.major.major_name|default:'-' }}</td>
+                    <td>
+                        {% if student.minor_major %}
+                            <small class="text-muted">{{ student.minor_major.major_name }}</small>
+                        {% else %}
+                            <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ student.grade_year|default:'-' }}</td>
+                    <td>
+                        {% if student.phone %}
+                            <small>{{ student.phone }}</small>
+                        {% else %}
+                            <span class="text-muted">未设置</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <small class="text-muted">
+                            <div>主修: {{ student.credits_earned|default:0 }} 学分</div>
+                            {% if student.minor_credits_earned > 0 %}
+                                <div>辅修: {{ student.minor_credits_earned }} 学分</div>
+                            {% endif %}
+                        </small>
+                    </td>
+                    <td>
+                        <div class="btn-group" role="group" aria-label="操作">
+                            <a href="{% url 'users:student-profile-edit' student.pk %}" 
+                               class="btn btn-sm btn-outline-primary" 
+                               title="编辑学生档案">
+                                <i class="bi bi-pencil"></i> 编辑
+                            </a>
+                            <a href="{% url 'users:student-delete' student.user.pk %}" 
+                               class="btn btn-sm btn-outline-danger" 
+                               title="删除学生"
+                               onclick="return confirm('确定要删除学生 {{ student.name }} ({{ student.student_id_num }}) 吗？此操作不可撤销！')">
+                                <i class="bi bi-trash"></i> 删除
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" class="text-center">没有找到符合条件的学生。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if is_paginated %}
+        {% include 'common/_pagination.html' %}
+    {% endif %}
+</div>
+{% endblock %}

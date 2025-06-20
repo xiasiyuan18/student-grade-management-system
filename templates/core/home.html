@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}仪表盘{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">仪表盘</h1>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+{# ========== 管理员视图 ========== #}
+{% if request.user.is_admin %}
+<div class="row">
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-primary shadow">
+            <div class="card-body">
+                <h5 class="card-title">学生总数</h5>
+                <p class="card-text fs-4">{{ student_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-success shadow">
+            <div class="card-body">
+                <h5 class="card-title">教师总数</h5>
+                <p class="card-text fs-4">{{ teacher_count }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-4">
+        <div class="card text-white bg-info shadow">
+            <div class="card-body">
+                <h5 class="card-title">课程总数</h5>
+                <p class="card-text fs-4">{{ course_count }}</p>
+            </div>
+        </div>
+    </div>
+     <div class="col-md-3 mb-4">
+        <div class="card text-white bg-warning shadow">
+            <div class="card-body">
+                <h5 class="card-title">院系总数</h5>
+                <p class="card-text fs-4">{{ department_count }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <!-- 左侧图表: 热门选修课程 -->
+    <div class="col-lg-7 mb-4">
+        <div class="card shadow">
+            <div class="card-header">热门选修课程 Top 10</div>
+            <div class="card-body" style="height: 400px;">
+                <canvas id="courseDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <!-- 【已修改】右侧图表: 全校学生GPA分布 -->
+    <div class="col-lg-5 mb-4">
+        <div class="card shadow">
+            <div class="card-header">全校学生GPA分布</div>
+            <div class="card-body" style="height: 400px;">
+                <canvas id="gpaDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ========== 教师视图 ========== #}
+{% elif request.user.is_teacher %}
+<h2>我教的课程</h2>
+{% if teacher_courses %}
+    <ul class="list-group mb-4">
+        {% for assignment in teacher_courses %}
+            <li class="list-group-item">{{ assignment.course.course_name }} ({{ assignment.semester }})</li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>您当前未教授任何课程。</p>
+{% endif %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow">
+            <div class="card-header">所教课程成绩分布</div>
+            <div class="card-body" style="height: 400px;">
+                <canvas id="teacherGradeDistributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# ========== 学生视图 ========== #}
+{% elif request.user.is_student %}
+<h2>我的成绩</h2>
+ {% if enrollments %}
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>课程</th>
+                <th>成绩</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for grade in enrollments %}
+                <tr>
+                    <td>{{ grade.course.course_name }}</td>
+                    <td>{{ grade.score|default:"未录入" }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-info">暂无成绩记录。</div>
+{% endif %}
+
+{% else %}
+    <div class="alert alert-secondary">未知的用户类型，无可用信息。</div>
+{% endif %}
+
+{% endblock %}
+
+
+{% block extra_js %}
+{# 使用 json_script 标签安全地传递数据 #}
+{% if request.user.is_admin %}
+    {{ course_distribution_data|json_script:"course-data" }}
+    {{ gpa_distribution_data|json_script:"gpa-data" }}  {# 【已修改】使用新的数据 #}
+{% elif request.user.is_teacher %}
+    {{ teacher_grade_distribution_data|json_script:"teacher-grade-data" }}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const chartColors = [
+        'rgba(54, 162, 235, 0.7)', 'rgba(75, 192, 192, 0.7)',
+        'rgba(255, 206, 86, 0.7)', 'rgba(255, 159, 64, 0.7)',
+        'rgba(153, 102, 255, 0.7)', 'rgba(255, 99, 132, 0.7)',
+        'rgba(40, 167, 69, 0.7)', 'rgba(0, 123, 255, 0.7)',
+        'rgba(253, 126, 20, 0.7)', 'rgba(108, 117, 125, 0.7)'
+    ];
+    const chartBorderColors = chartColors.map(color => color.replace('0.7', '1'));
+
+    function renderChart(canvasId, chartType, dataInfo, chartOptions = {}) {
+        const ctx = document.getElementById(canvasId);
+        if (!ctx) return;
+
+        const chartData = JSON.parse(document.getElementById(dataInfo.id)?.textContent || '{}');
+        if (!chartData.labels || chartData.labels.length === 0) {
+            const canvas = ctx.getContext('2d');
+            canvas.font = "16px sans-serif";
+            canvas.textAlign = "center";
+            canvas.fillText(dataInfo.emptyMessage, ctx.width / 2, ctx.height / 2);
+            return;
+        }
+
+        new Chart(ctx, {
+            type: chartType,
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: dataInfo.label,
+                    data: chartData.data,
+                    backgroundColor: chartColors,
+                    borderColor: chartBorderColors,
+                    borderWidth: 1
+                }]
+            },
+            options: { ...chartOptions, responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    // 渲染管理员图表
+    if (document.getElementById('course-data')) {
+        // 左侧图表
+        renderChart('courseDistributionChart', 'bar', {
+            id: 'course-data',
+            label: '选修人数',
+            emptyMessage: '暂无课程选修数据'
+        }, {
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+            plugins: { legend: { display: false } }
+        });
+
+        // 【已修改】右侧图表
+        renderChart('gpaDistributionChart', 'bar', { // 改为 bar chart
+            id: 'gpa-data', // 使用新的数据ID
+            label: '学生人数',
+            emptyMessage: '暂无GPA分布数据'
+        }, {
+            scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+            plugins: { legend: { display: false } }
+        });
+    }
+    
+    // 渲染教师图表
+    if (document.getElementById('teacher-grade-data')) {
+        renderChart('teacherGradeDistributionChart', 'pie', {
+            id: 'teacher-grade-data',
+            label: '学生人数',
+            emptyMessage: '暂无您所教课程的成绩数据'
+        });
+    }
+});
+</script>
+{% endblock %}

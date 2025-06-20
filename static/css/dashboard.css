@@ -1,0 +1,24 @@
+/* static/css/dashboard.css */
+
+body {
+    /* 设置一个浅灰色的背景，让页面不那么刺眼 */
+    background-color: #f8f9fa;
+}
+
+.container {
+    /* 给主要内容区域上下增加一些间距 */
+    padding-top: 1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+.card {
+    /* 给卡片组件增加一点阴影，让它看起来更立体 */
+    box-shadow: 0 2px 4px rgba(0,0,0,.075);
+}
+
+/* 让表格的头部文字颜色深一点，更清晰 */
+.table thead th {
+    color: #212529;
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if object %}编辑选课记录{% else %}新建选课记录{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{% if object %}编辑选课记录{% else %}新建选课记录{% endif %}</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.student.id_for_label }}" class="form-label">
+                        学生 <span class="text-danger">*</span>
+                    </label>
+                    <select name="student" class="form-select" required>
+                        <option value="">请选择学生</option>
+                        {% for student in form.student.field.queryset %}
+                            <option value="{{ student.pk }}" {% if form.student.value == student.pk %}selected{% endif %}>
+                                {{ student.name }} ({{ student.student_id_num }}) - {{ student.department.dept_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% for error in form.student.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.teaching_assignment.id_for_label }}" class="form-label">
+                        授课安排 <span class="text-danger">*</span>
+                    </label>
+                    <select name="teaching_assignment" class="form-select" required>
+                        <option value="">请选择授课安排</option>
+                        {% for assignment in form.teaching_assignment.field.queryset %}
+                            <option value="{{ assignment.pk }}" {% if form.teaching_assignment.value == assignment.pk %}selected{% endif %}>
+                                {{ assignment.course.course_name }} - {{ assignment.teacher.name }} ({{ assignment.semester }})
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% for error in form.teaching_assignment.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.status.id_for_label }}" class="form-label">选课状态</label>
+                    <select name="status" class="form-select">
+                        {% for value, display in form.status.field.choices %}
+                            <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %}>
+                                {{ display }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    {% for error in form.status.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'courses:enrollment-list' %}" class="btn btn-secondary me-2">取消</a>
+                <button type="submit" class="btn btn-primary">
+                    {% if object %}保存更改{% else %}确认创建{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

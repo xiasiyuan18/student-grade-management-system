@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}批量选课{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">批量选课</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="teaching_assignment" class="form-label">选择授课安排 <span class="text-danger">*</span></label>
+                    <select name="teaching_assignment" id="teaching_assignment" class="form-select" required>
+                        <option value="">请选择授课安排</option>
+                        {% for assignment in teaching_assignments %}
+                            <option value="{{ assignment.pk }}">
+                                {{ assignment.course.course_name }} - {{ assignment.teacher.name }} - {{ assignment.semester }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">选择学生 <span class="text-danger">*</span></label>
+                    <div style="height: 300px; overflow-y: auto; border: 1px solid #ddd; padding: 10px;">
+                        <div class="mb-2">
+                            <input type="checkbox" id="select_all" class="form-check-input">
+                            <label for="select_all" class="form-check-label"><strong>全选</strong></label>
+                        </div>
+                        <hr>
+                        {% for student in students %}
+                        <div class="form-check">
+                            <input type="checkbox" name="students" value="{{ student.pk }}" 
+                                   id="student_{{ student.pk }}" class="form-check-input student-checkbox">
+                            <label for="student_{{ student.pk }}" class="form-check-label">
+                                {{ student.name }} ({{ student.student_id_num }}) - {{ student.department.dept_name }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'courses:enrollment-list' %}" class="btn btn-secondary me-2">取消</a>
+                <button type="submit" class="btn btn-primary">确认选课</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('select_all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+    });
+});
+</script>
+{% endblock %}

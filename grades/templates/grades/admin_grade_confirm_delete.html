@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">{{ page_title }}</h1>
+    </div>
+
+    <div class="alert alert-danger">
+        <h4><i class="fas fa-exclamation-triangle"></i> 操作确认</h4>
+        <p>您确定要永久删除以下成绩记录吗？此操作不可恢复。</p>
+        <hr>
+        <p><strong>学生:</strong> {{ object.student.name }} ({{ object.student.student_id_num }})</p>
+        <p><strong>课程:</strong> {{ object.teaching_assignment.course.course_name }}</p>
+        <p><strong>分数:</strong> {{ object.score }}</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">确认删除</button>
+        <a href="{% url 'grades:admin-grade-list' %}" class="btn btn-secondary">取消</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">{{ page_title }}</h1>
+    </div>
+
+    <!-- 搜索表单 -->
+    <form method="get" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="搜索学生姓名/学号、课程名/编号、教师或学期..." value="{{ search_query|default:'' }}">
+            <button class="btn btn-primary" type="submit">
+                <i class="fas fa-search"></i> 搜索
+            </button>
+        </div>
+    </form>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>学生姓名</th>
+                    <th>学号</th>
+                    <th>课程名称</th>
+                    <th>学期</th>
+                    <th>授课教师</th>
+                    <th>分数</th>
+                    <th>绩点 (GPA)</th>
+                    <th>录入时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for grade in grades %}
+                <tr>
+                    <td>{{ grade.student.name }}</td>
+                    <td>{{ grade.student.student_id_num }}</td>
+                    <td>{{ grade.teaching_assignment.course.course_name }}</td>
+                    <td>{{ grade.teaching_assignment.semester }}</td>
+                    <td>{{ grade.teaching_assignment.teacher.name }}</td>
+                    <td><strong>{{ grade.score|default:"-" }}</strong></td>
+                    <td>{{ grade.gpa|default:"-" }}</td>
+                    <td>{{ grade.entry_time|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        <a href="{% url 'grades:admin-grade-update' grade.pk %}" class="btn btn-sm btn-outline-primary me-1">
+                            <i class="fas fa-pen"></i> 编辑
+                        </a>
+                        <a href="{% url 'grades:admin-grade-delete' grade.pk %}" class="btn btn-sm btn-outline-danger">
+                            <i class="fas fa-trash"></i> 删除
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center">没有找到符合条件的成绩记录。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% include 'common/_pagination.html' %}
+</div>
+{% endblock %}

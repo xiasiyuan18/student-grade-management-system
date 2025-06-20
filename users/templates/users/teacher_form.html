@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% block title %}{% if object %}编辑教师{% else %}添加教师{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{% if object %}编辑教师：{{ object.username }}{% else %}添加新教师{% endif %}</h1>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+
+            <div class="row">
+                <!-- 用户账户信息 -->
+                <div class="col-12">
+                    <h5 class="mb-3 text-primary">用户账户信息</h5>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.username.id_for_label }}" class="form-label">
+                        {{ form.username.label }}
+                        {% if form.username.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ form.username }}
+                    {% if form.username.help_text %}
+                        <div class="form-text text-muted small">{{ form.username.help_text }}</div>
+                    {% endif %}
+                    {% for error in form.username.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.password.id_for_label }}" class="form-label">
+                        {{ form.password.label }}
+                        {% if form.password.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ form.password }}
+                    {% for error in form.password.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.email.id_for_label }}" class="form-label">
+                        {{ form.email.label }}
+                    </label>
+                    {{ form.email }}
+                    {% for error in form.email.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                        {{ form.first_name.label }}
+                    </label>
+                    {{ form.first_name }}
+                    {% for error in form.first_name.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                        {{ form.last_name.label }}
+                    </label>
+                    {{ form.last_name }}
+                    {% for error in form.last_name.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <!-- 教师档案信息 -->
+                <div class="col-12 mt-4">
+                    <h5 class="mb-3 text-primary">教师档案信息</h5>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.teacher_id_num.id_for_label }}" class="form-label">
+                        {{ form.teacher_id_num.label }}
+                        {% if form.teacher_id_num.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ form.teacher_id_num }}
+                    {% for error in form.teacher_id_num.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                        {{ form.name.label }}
+                        {% if form.name.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ form.name }}
+                    {% for error in form.name.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.department.id_for_label }}" class="form-label">
+                        {{ form.department.label }}
+                        {% if form.department.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ form.department }}
+                    {% for error in form.department.errors %}
+                        <div class="invalid-feedback d-block">{{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <hr class="mt-4">
+            <div class="d-flex justify-content-end">
+                <a href="{% url 'users:teacher-list' %}" class="btn btn-secondary me-2">取消</a>
+                <button type="submit" class="btn btn-primary">{% if object %}保存更改{% else %}确认添加{% endif %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

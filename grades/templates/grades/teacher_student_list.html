@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2">{{ page_title }}</h1>
+            <p class="text-muted">{{ assignment.semester }} - 授课教师: {{ assignment.teacher.name }}</p>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'grades:teacher-courses' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 返回我的课程
+            </a>
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>序号</th>
+                    <th>学号</th>
+                    <th>姓名</th>
+                    <th>性别</th>
+                    <th>专业</th>
+                    <th>联系电话</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ enrollment.student.student_id_num }}</td>
+                    <td>{{ enrollment.student.name }}</td>
+                    <td>{{ enrollment.student.gender }}</td>
+                    <td>{{ enrollment.student.major.major_name }}</td>
+                    <td>{{ enrollment.student.phone|default:"-" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" class="text-center">该课程当前没有已选课的学生。</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

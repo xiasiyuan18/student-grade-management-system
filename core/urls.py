@@ -17,7 +17,6 @@ urlpatterns = [
     path('accounts/', include('django.contrib.auth.urls')),
 
     # 2. 前端页面路由
-    # ✨ 关键修复：将主页路由指向我们自己的 home 视图函数
     path('', home, name='home'), 
     
     # 将所有前端应用的URL聚合到 /frontend/ 下
@@ -29,7 +28,6 @@ urlpatterns = [
         path('utils/', include('utils.urls', namespace='utils')),
     ])),
 
-    # ✨ 关键修复：添加通用查询模块的 URL (这行在你提供的代码中已有，保持即可)
     path('query/', include('common.urls', namespace='common')),
 
     # 3. 后端 API 路由

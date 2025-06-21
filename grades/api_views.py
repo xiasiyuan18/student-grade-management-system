@@ -1,13 +1,12 @@
-# student_grade_management_system/grades/api_views.py
-
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView # 如果 StudentGradeForTeachingAssignmentView 是 APIView
+from django.shortcuts import get_object_or_404
 
 # 导入模型和序列化器
 from .models import Grade
 from courses.models import TeachingAssignment
-from users.models import Student # 确保Student模型被导入
+from users.models import Student, CustomUser # 确保Student模型被导入
 
 # 假设你有 GradeSerializer, StudentGradeSerializer, TeachingAssignmentGradeSerializer 等
 from .serializers import GradeSerializer # 如果有 GradeViewSet
@@ -78,7 +77,6 @@ class StudentGradeForTeachingAssignmentView(generics.RetrieveUpdateDestroyAPIVie
             return queryset.filter(student__user=user)
         elif user.is_authenticated and user.role == CustomUser.Role.TEACHER:
             # 教师只能查看自己授课的成绩
-            # 注意：这需要 Grade 与 TeachingAssignment 的关联，以及 TeachingAssignment 与 Teacher 的关联
             return queryset.filter(teaching_assignment__teacher=user.teacher_profile)
 
         return queryset # 管理员可以看到所有

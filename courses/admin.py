@@ -1,4 +1,3 @@
-# student_grade_management_system/courses/admin.py
 from django.contrib import admin
 from .models import Course, TeachingAssignment # 确保导入了正确的模型类 (TeachingAssignment)
 

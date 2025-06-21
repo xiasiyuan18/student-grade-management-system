@@ -1,4 +1,3 @@
-# grades/services.py
 from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
@@ -41,7 +40,6 @@ def calculate_and_update_student_credits(student_profile):
         course = grade.teaching_assignment.course
         course_credits = course.credits
         
-        # ✅ 修复：使用 course.department 而不是 course.major
         # 判断课程属于主修、辅修还是选修
         if student_major and course.department == student_major.department:
             # 如果课程所属院系与学生主修专业所属院系相同，计入主修学分
@@ -55,7 +53,6 @@ def calculate_and_update_student_credits(student_profile):
         
         total_credits += course_credits
     
-    # ✅ 修复：更新学生的学分信息，使用正确的字段名
     # 根据 Student 模型，只有 credits_earned 和 minor_credits_earned 字段
     student_profile.credits_earned = major_credits + elective_credits  # 主修学分 + 选修学分
     student_profile.minor_credits_earned = minor_credits  # 辅修学分

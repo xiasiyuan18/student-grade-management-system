@@ -1,4 +1,3 @@
-# users/permissions.py
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 from django.contrib.auth import get_user_model
 
@@ -29,15 +28,6 @@ class IsOwnerOrAdminOnly(BasePermission):
     其他已认证用户可能有读取权限（取决于视图级别的 has_permission）。
     """
     def has_object_permission(self, request, view, obj):
-        # 读取权限通常在视图级别的 has_permission 中处理，
-        # 或者如果默认是 IsAuthenticated，那么所有人都能读。
-        # 如果想在这里也限制读取，可以取消下面的注释：
-        # if request.method in SAFE_METHODS:
-        #     return True # 或者更细致的检查
-
-        # 写权限只给对象所有者或管理员
-        # 假设对象 obj 有一个 user 字段指向创建者 (CustomUser)
-        # 或者你的 Profile 模型 (Student, Teacher) 有一个 user 字段
         if hasattr(obj, 'user'): # 例如 Student Profile, Teacher Profile
             return obj.user == request.user or request.user.is_staff
         elif isinstance(obj, CustomUser): # 如果对象本身就是 CustomUser

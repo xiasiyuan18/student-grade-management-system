@@ -1,5 +1,3 @@
-# users/forms.py
-
 from django import forms
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -221,7 +219,6 @@ class StudentProfileForm(forms.ModelForm):
             'id_card': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '18位身份证号'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            # ✅ 修改电话字段为文本输入框，而不是数字输入框
             'phone': forms.TextInput(attrs={
                 'class': 'form-control', 
                 'placeholder': '请输入手机号码',

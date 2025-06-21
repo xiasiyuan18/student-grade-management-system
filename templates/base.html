@@ -41,7 +41,6 @@
                             </li>
                             <li><hr class="dropdown-divider"></li>
                             <li>
-                                <!-- 使用POST表单进行安全登出 -->
                                 <form method="post" action="{% url 'logout' %}" class="d-inline">
                                     {% csrf_token %}
                                     <button type="submit" class="dropdown-item text-danger">

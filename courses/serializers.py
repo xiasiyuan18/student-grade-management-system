@@ -1,10 +1,7 @@
-# student_grade_management_system/courses/serializers.py
 from rest_framework import serializers
 from .models import Course, TeachingAssignment # 导入模型
 
-# 假设 users.models.Teacher 有 name 字段
 from users.models import Teacher 
-# 假设 departments.models.Department 有 dept_name 字段
 from departments.models import Department 
 
 

@@ -429,7 +429,6 @@ class GradeEntryView(TeacherRequiredMixin, View):
                     error_count += 1
                     continue
         
-        # ✅ 新增：为所有更新了成绩的学生重新计算学分
         for student in updated_students:
             calculate_and_update_student_credits(student)
         
@@ -473,7 +472,6 @@ from departments.models import Department, Major
 from users.models import CustomUser, Student
 # Remove the problematic import - forms module doesn't exist
 # from .forms import StudentImportForm
-# ✅ 修改：使用现有的 AdminRequiredMixin 替代不存在的函数
 from common.mixins import AdminRequiredMixin
 from django import forms
 
@@ -490,12 +488,7 @@ class StudentImportView(AdminRequiredMixin, FormView):  # ✅ 使用 AdminRequir
     form_class = StudentImportForm
     success_url = reverse_lazy("users:student-list")
 
-    # ✅ 删除：不再需要 dispatch 方法，AdminRequiredMixin 会自动处理权限
-    # def dispatch(self, request, *args, **kwargs):
-    #     if not is_admin_or_teacher_or_manager(request.user):
-    #         messages.error(request, "您没有权限访问此页面。")
-    #         return redirect("core:home")
-    #     return super().dispatch(request, *args, **kwargs)
+
 
     @transaction.atomic
     def form_valid(self, form):

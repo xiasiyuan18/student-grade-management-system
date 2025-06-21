@@ -97,7 +97,6 @@ class DepartmentAPITests(APITestCase):
 
     def test_delete_department_admin_user_success(self):
         """测试管理员可以删除院系 (假设没有被 Major PROTECT)"""
-        # 注意：如果 Major 表中有数据关联到这个 Department，并且 on_delete=models.PROTECT，则删除会失败
         # 你可能需要先创建一个没有 Major 关联的 Department 来测试纯粹的删除，或者测试 PROTECT 行为
         temp_dept = Department.objects.create(dept_code="TEMP", dept_name="临时院系")
         self.client.force_authenticate(user=self.admin_user)

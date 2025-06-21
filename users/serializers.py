@@ -16,7 +16,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
     用于 CustomUser 模型的序列化器
     """
 
-    # 对于密码字段，通常只在创建或更新时写入，不用于读取
     password = serializers.CharField(
         write_only=True, required=False, style={"input_type": "password"}
     )

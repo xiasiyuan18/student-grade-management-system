@@ -1,5 +1,3 @@
-# student_grade_management_system/grades/views.py
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse, reverse_lazy
 from django.views import generic, View
@@ -137,7 +135,6 @@ class GradeEntryView(TeacherRequiredMixin, View):
         error_count = 0
         error_details = []  # ✅ 新增：收集详细错误信息
         
-        # ✅ 新增：记录处理的表单数据，用于调试
         print(f"DEBUG: 处理授课安排 {assignment_id} 的成绩录入")
         print(f"DEBUG: POST 数据: {dict(request.POST)}")
         
@@ -184,7 +181,6 @@ class GradeEntryView(TeacherRequiredMixin, View):
                         print(f"DEBUG: 选课状态错误 - 学生 {student.name}, 状态 {enrollment.status}")
                         continue
                     
-                    # ✅ 如果所有检查都通过，创建或更新成绩
                     grade, created = Grade.objects.update_or_create(
                         student=student,
                         teaching_assignment=assignment,

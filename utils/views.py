@@ -1,5 +1,3 @@
-# utils/views.py
-
 import pandas as pd
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -31,9 +29,7 @@ class StudentImportView(LoginRequiredMixin, FormView):
         file = form.cleaned_data["file"]
 
         try:
-            # ✅ 改进：保持原始数据类型，不要全部转为字符串
             df = pd.read_excel(file)
-            # ✅ 确保 id_card 在字符串处理列表中
             string_columns = ["username", "password", "name", "student_id_num", 
                             "department_name", "major_name", "minor_department_name", 
                             "minor_major_name", "gender", "phone", "id_card", 
@@ -91,7 +87,6 @@ class StudentImportView(LoginRequiredMixin, FormView):
                     errors.append(f"第 {row_num} 行：必填字段不能为空。")
                     continue
                 
-                # ✅ 身份证号验证：确保身份证号唯一且格式正确
                 if id_card:
                     # 验证身份证号格式（18位数字或17位数字+X）
                     import re
@@ -168,7 +163,6 @@ class StudentImportView(LoginRequiredMixin, FormView):
                     'birth_date': birth_date_obj,
                 }
                 
-                # ✅ 添加可选字段（只有非空时才添加，确保空值为 None）
                 if minor_major:
                     student_data['minor_major'] = minor_major
                 if minor_department:
@@ -182,7 +176,6 @@ class StudentImportView(LoginRequiredMixin, FormView):
                 if dormitory:
                     student_data['dormitory'] = dormitory
                 
-                # ✅ 如果字段在数据中不存在，Django 会使用字段的默认值（None）
                 Student.objects.create(**student_data)
                 success_count += 1
 

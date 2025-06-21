@@ -1,8 +1,6 @@
-# grades/signals.py
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .models import Grade
-# 注意：这里我们直接调用 services.py 中的函数
 from .services import calculate_and_update_student_credits 
 
 @receiver([post_save, post_delete], sender=Grade)

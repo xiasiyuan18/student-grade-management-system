@@ -1,4 +1,3 @@
-# departments/serializers.py
 from rest_framework import serializers
 from .models import Department, Major
 
@@ -9,10 +8,7 @@ class DepartmentSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 class MajorSerializer(serializers.ModelSerializer):
-    # 在API输出时能直接看到所属院系的名称
     department_name = serializers.CharField(source='department.dept_name', read_only=True, allow_null=True)
-    # department 字段用于写入时接收院系的ID
-    # department = serializers.PrimaryKeyRelatedField(queryset=Department.objects.all()) # 如果需要显式指定
 
     class Meta:
         model = Major

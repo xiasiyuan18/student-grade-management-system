@@ -9,7 +9,6 @@
 <div class="container mt-4">
 
     {# 动态设置页面大标题 #}
-    {# ✨ 关键修正：将 object.name 修改为 object.major_name ✨ #}
     <h1 class="h2">
         {% if object %}
             编辑专业：{{ object.major_name }}
@@ -22,8 +21,6 @@
 
     <form method="post" novalidate>
         {% csrf_token %}
-        
-        {# 使用 form.as_p 渲染表单，这是最佳实践 #}
         {{ form.as_p }}
 
         <div class="mt-3">

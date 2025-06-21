@@ -10,7 +10,6 @@ urlpatterns = [
     path('', frontend_views.DepartmentListView.as_view(), name='department-list'),
     path('create/', frontend_views.DepartmentCreateView.as_view(), name='department-create'),
     
-    # 修复：使用更灵活的主键匹配
     # 如果Department使用dept_id作为主键，并且可能包含特殊字符
     path('<slug:pk>/update/', frontend_views.DepartmentUpdateView.as_view(), name='department-update'),
     path('<slug:pk>/delete/', frontend_views.DepartmentDeleteView.as_view(), name='department-delete'),

@@ -1,5 +1,3 @@
-# departments/frontend_views.py (添加回缺失的视图)
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
 from django.views import generic
@@ -71,7 +69,7 @@ class DepartmentDeleteView(AdminRequiredMixin, generic.DeleteView):
     success_url = reverse_lazy('departments:department-list')
     success_message = "院系已成功删除。"
     
-    # ✨ 关键：重写 post 方法以捕获 ProtectedError
+    # post 方法捕获 ProtectedError
     def post(self, request, *args, **kwargs):
         try:
             # 尝试调用父类的 delete 方法
@@ -122,7 +120,7 @@ class MajorDeleteView(AdminRequiredMixin, generic.DeleteView):
     success_url = reverse_lazy('departments:major-list')
     success_message = "专业已成功删除。"
 
-    # ✨ 关键：同样为专业删除添加保护
+    # 为专业删除添加保护
     def post(self, request, *args, **kwargs):
         try:
             response = self.delete(request, *args, **kwargs)

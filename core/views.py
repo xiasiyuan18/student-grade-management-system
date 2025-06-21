@@ -1,4 +1,3 @@
-# core/views.py
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from users.models import Student, Teacher
@@ -66,9 +65,8 @@ def home(request):
                 'teacher_count': Teacher.objects.count(),
                 'course_count': Course.objects.count(),
                 'department_count': Department.objects.count(),
-                # 【已修改】: 直接传递字典，由模板中的 json_script 标签处理
                 'course_distribution_data': get_course_distribution(),
-                'gpa_distribution_data': get_gpa_distribution(), # 新增的数据
+                'gpa_distribution_data': get_gpa_distribution(),
             })
         elif hasattr(user, 'is_teacher') and user.is_teacher:
             context['teacher_courses'] = TeachingAssignment.objects.filter(teacher__user=user)

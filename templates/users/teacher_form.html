@@ -21,7 +21,6 @@
         <div class="card-body">
             {# 表单必须使用 POST 方法提交数据 #}
             <form method="post">
-                {# Django 的安全令牌，所有POST表单都必须包含 #}
                 {% csrf_token %}
 
                 {# 如果表单有不针对任何特定字段的全局错误，在这里显示 #}

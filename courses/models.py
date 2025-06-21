@@ -1,10 +1,10 @@
-# student_grade_management_system/courses/models.py
+
 from decimal import Decimal
 from django.core.validators import (MaxValueValidator, MinLengthValidator,
                                     MinValueValidator, RegexValidator)
 from django.db import models
 
-# 导入 Department, Teacher, 和 Student 模型
+
 from departments.models import Department
 from users.models import Teacher, Student
 
@@ -127,13 +127,12 @@ class CourseEnrollment(models.Model):
         related_name='course_enrollments'
     )
     
-    # ✨ 关键修复：这里的关联字段从 Course 改为 TeachingAssignment
-    # 这样才能准确知道学生选的是哪个老师、哪个学期的课
+   
     teaching_assignment = models.ForeignKey(
         TeachingAssignment,
         on_delete=models.CASCADE,
         verbose_name='授课安排',
-        # ✨ 关键修复：定义一个清晰的反向关联名称
+ 
         related_name='enrollments'
     )
     

@@ -1,4 +1,4 @@
-# courses/tests.py
+
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
@@ -6,7 +6,7 @@ from rest_framework import status
 from django.urls import reverse
 from decimal import Decimal
 
-# 引入正确模型
+
 from users.models import CustomUser, Teacher, Student 
 from departments.models import Department 
 from departments.models import Major 

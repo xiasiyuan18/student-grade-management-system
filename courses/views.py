@@ -1,4 +1,4 @@
-# courses/views.py (这个文件用于后端API视图)
+
 
 from rest_framework import viewsets, permissions
 from .models import Course, TeachingAssignment

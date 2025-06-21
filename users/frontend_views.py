@@ -1,4 +1,3 @@
-# users/frontend_views.py
 import pandas as pd
 from django.http import HttpResponse
 from django.urls import reverse, reverse_lazy
@@ -10,7 +9,7 @@ from django.contrib.auth import get_user_model
 from django.contrib import messages
 from django.db.models import Q
 
-# 确保导入了所有我们需要的、正确的表单
+
 from .forms import (
     TeacherCreateForm, TeacherUpdateForm, StudentCreateForm, StudentProfileUpdateForm, 
     TeacherProfileUpdateForm, StudentUpdateForm, StudentProfileEditForm
@@ -24,9 +23,6 @@ from common.mixins import (
 User = get_user_model()
 
 
-# =============================================================================
-# 管理员功能 - 学生管理
-# =============================================================================
 class StudentListView(AdminRequiredMixin, SensitiveInfoMixin, generic.ListView):
     model = Student
     template_name = 'users/student_list.html'
@@ -37,17 +33,15 @@ class StudentListView(AdminRequiredMixin, SensitiveInfoMixin, generic.ListView):
         """
         重写此方法以支持搜索功能。
         """
-        # ✅ 确保我们从完整的学生列表开始
-        # 使用 select_related 优化数据库查询，一次性获取关联对象
+
         queryset = Student.objects.select_related(
             'user', 'department', 'major', 'minor_major'
         ).order_by('student_id_num')
 
-        # 获取 GET 请求中的搜索参数 'q'
+
         search_query = self.request.GET.get('q', None)
         
         if search_query:
-            # 如果有搜索词，则进行多字段模糊查询
             queryset = queryset.filter(
                 Q(name__icontains=search_query) |
                 Q(student_id_num__icontains=search_query) |
@@ -76,9 +70,7 @@ class StudentCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.FormVie
         form.save()
         return super().form_valid(form)
 
-    # ✨ 关键：修正 get_success_message 方法
     def get_success_message(self, cleaned_data):
-        # 直接使用传入的 cleaned_data 字典，而不是 self.get_form()
         return self.success_message % {
             'name': cleaned_data.get('name'),
             'username': cleaned_data.get('username')
@@ -118,9 +110,6 @@ class StudentDeleteView(AdminRequiredMixin, generic.DeleteView):
         return User.objects.filter(role=User.Role.STUDENT)
 
 
-# =============================================================================
-# 管理员功能 - 教师管理
-# =============================================================================
 class TeacherListView(AdminRequiredMixin, SensitiveInfoMixin, generic.ListView):
     model = Teacher
     template_name = 'users/teacher_list.html'
@@ -154,9 +143,7 @@ class TeacherCreateView(AdminRequiredMixin, SuccessMessageMixin, generic.FormVie
         form.save()
         return super().form_valid(form)
 
-    # ✨ 关键：修正 get_success_message 方法
     def get_success_message(self, cleaned_data):
-        # 直接使用传入的 cleaned_data 字典
         return self.success_message % {
             'name': cleaned_data.get('name'),
             'username': cleaned_data.get('username')
@@ -193,10 +180,6 @@ class TeacherDeleteView(AdminRequiredMixin, generic.DeleteView):
         messages.success(self.request, f"教师 {self.object.username} 已成功删除。")
         return super().form_valid(form)
 
-
-# =============================================================================
-# 学生与教师个人中心
-# =============================================================================
 class StudentProfileUpdateView(StudentRequiredMixin, SuccessMessageMixin, generic.UpdateView):
     model = Student
     form_class = StudentProfileUpdateForm
@@ -224,10 +207,8 @@ class TeacherProfileUpdateView(TeacherRequiredMixin, SuccessMessageMixin, generi
 
 class StudentExportExcelView(AdminRequiredMixin, generic.View):
     def get(self, request, *args, **kwargs):
-        # 获取所有学生数据
         students = Student.objects.select_related('user', 'major', 'department').all()
         
-        # 准备数据
         data = {
             '学号': [s.student_id_num for s in students],
             '姓名': [s.name for s in students],
@@ -240,15 +221,10 @@ class StudentExportExcelView(AdminRequiredMixin, generic.View):
         }
         
         df = pd.DataFrame(data)
-        
-        # 创建一个 HTTP 响应，内容类型为 Excel
         response = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         )
-        # 设置文件名
         response['Content-Disposition'] = 'attachment; filename="students_export.xlsx"'
-        
-        # 将 DataFrame 写入响应
         df.to_excel(response, index=False, engine='openpyxl')
         
         return response

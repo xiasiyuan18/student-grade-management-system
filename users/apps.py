@@ -8,4 +8,4 @@ class UsersConfig(AppConfig):
         """
         当App准备就绪时，导入并连接信号处理器。
         """
-        import users.signals  # ✨ 关键：在这里导入你的 signals.py 文件
+        import users.signals  # ✨

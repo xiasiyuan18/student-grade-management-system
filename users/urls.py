@@ -1,5 +1,3 @@
-# users/urls.py (API 专用)
-
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
@@ -11,7 +9,7 @@ from .views import (
     LogoutAPIView
 )
 
-# 命名空间 'users-api'，与 core/urls.py 中的API部分对应
+
 app_name = 'users-api'
 
 router = DefaultRouter()

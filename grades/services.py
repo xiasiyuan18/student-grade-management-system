@@ -1,4 +1,3 @@
-# grades/services.py
 from decimal import Decimal, InvalidOperation
 
 from django.core.exceptions import ValidationError
@@ -12,55 +11,40 @@ from .models import Grade
 
 
 def calculate_and_update_student_credits(student_profile):
-    """
-    计算并更新学生的学分信息
-    
-    Args:
-        student_profile: Student 实例
-    """
+    """计算并更新学生的学分信息"""
     if not isinstance(student_profile, Student):
         return
     
-    # 获取学生的主修专业和辅修专业
     student_major = student_profile.major
     student_minor_major = student_profile.minor_major
     
-    # 获取所有及格的成绩记录 (score >= 60)
+    # 获取所有及格的成绩记录
     passing_grades = Grade.objects.filter(
         student=student_profile,
-        score__gte=60  # 及格分数
+        score__gte=60
     ).select_related('teaching_assignment__course')
     
-    # 计算总学分
     total_credits = 0
-    major_credits = 0  # 主修专业学分
-    minor_credits = 0  # 辅修专业学分
-    elective_credits = 0  # 选修课学分
+    major_credits = 0
+    minor_credits = 0
+    elective_credits = 0
     
     for grade in passing_grades:
         course = grade.teaching_assignment.course
         course_credits = course.credits
         
-        # ✅ 修复：使用 course.department 而不是 course.major
-        # 判断课程属于主修、辅修还是选修
         if student_major and course.department == student_major.department:
-            # 如果课程所属院系与学生主修专业所属院系相同，计入主修学分
             major_credits += course_credits
         elif student_minor_major and course.department == student_minor_major.department:
-            # 如果课程所属院系与学生辅修专业所属院系相同，计入辅修学分
             minor_credits += course_credits
         else:
-            # 其他课程计入选修学分
             elective_credits += course_credits
         
         total_credits += course_credits
     
-    # ✅ 修复：更新学生的学分信息，使用正确的字段名
-    # 根据 Student 模型，只有 credits_earned 和 minor_credits_earned 字段
-    student_profile.credits_earned = major_credits + elective_credits  # 主修学分 + 选修学分
-    student_profile.minor_credits_earned = minor_credits  # 辅修学分
+    student_profile.credits_earned = major_credits + elective_credits
+    student_profile.minor_credits_earned = minor_credits
     
-    # ✅ 修复：只保存存在的字段
     student_profile.save(update_fields=[
         'credits_earned', 
         'minor_credits_earned'
@@ -75,19 +59,10 @@ def calculate_and_update_student_credits(student_profile):
 
 
 def get_student_grade_summary(student_profile):
-    """
-    获取学生成绩汇总信息
-    
-    Args:
-        student_profile: Student 实例
-        
-    Returns:
-        dict: 包含成绩统计信息的字典
-    """
+    """获取学生成绩汇总信息"""
     if not isinstance(student_profile, Student):
         return {}
     
-    # 获取所有成绩
     all_grades = Grade.objects.filter(
         student=student_profile
     ).select_related('teaching_assignment__course')
@@ -103,7 +78,6 @@ def get_student_grade_summary(student_profile):
             'earned_credits': 0,
         }
     
-    # 统计信息
     total_courses = all_grades.count()
     passed_grades = all_grades.filter(score__gte=60)
     passed_courses = passed_grades.count()
@@ -113,9 +87,8 @@ def get_student_grade_summary(student_profile):
     total_score = sum(grade.score for grade in all_grades)
     average_score = total_score / total_courses if total_courses > 0 else 0
     
-    # 计算 GPA (简化版本: 4.0制)
+    # 计算 GPA (4.0制)
     def score_to_gpa(score):
-        """将百分制分数转换为4.0制GPA"""
         if score >= 90:
             return 4.0
         elif score >= 80:
@@ -152,15 +125,7 @@ def get_student_grade_summary(student_profile):
 
 
 def calculate_class_grade_statistics(teaching_assignment):
-    """
-    计算班级成绩统计信息
-    
-    Args:
-        teaching_assignment: TeachingAssignment 实例
-        
-    Returns:
-        dict: 包含班级成绩统计的字典
-    """
+    """计算班级成绩统计信息"""
     grades = Grade.objects.filter(teaching_assignment=teaching_assignment)
     
     if not grades.exists():
@@ -177,7 +142,6 @@ def calculate_class_grade_statistics(teaching_assignment):
     scores = [grade.score for grade in grades]
     total_students = grades.count()
     
-    # 基本统计
     average_score = sum(scores) / len(scores)
     highest_score = max(scores)
     lowest_score = min(scores)
@@ -211,10 +175,7 @@ def create_or_update_grade(
     score_value: str,
     requesting_user: CustomUser,
 ) -> Grade:
-    """
-    为指定学生和授课安排创建或更新成绩。
-    (此函数逻辑保持不变, 它会自动调用上面已优化的计算函数)
-    """
+    """为指定学生和授课安排创建或更新成绩"""
     try:
         student = Student.objects.get(pk=student_id)
     except Student.DoesNotExist:
@@ -256,7 +217,7 @@ def create_or_update_grade(
             grade.last_modified_by = requesting_user
             grade.save()
 
-    # 无论创建还是更新，都调用新的计算逻辑
+    # 更新学分信息
     calculate_and_update_student_credits(student)
 
     return grade

@@ -1,5 +1,3 @@
-# users/views.py (解决冲突后的最终版本)
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.views import LoginView, LogoutView
 from django.urls import reverse_lazy
@@ -10,12 +8,10 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
-# 导入模型
 from .models import Student as StudentProfile
 from .models import Teacher as TeacherProfile
 from .models import CustomUser
 
-# 导入序列化器
 from .serializers import (
     CustomUserSerializer,
     StudentProfileSerializer,
@@ -25,13 +21,11 @@ from .serializers import (
     StudentProfileSelfUpdateSerializer,
     TeacherProfileSelfUpdateSerializer
 )
-# 导入权限和表单
 from .permissions import IsAdminRole, IsOwnerOrAdminOnly, IsStudentRole, IsTeacherRole
 from .forms import CustomAuthenticationForm
 
 CustomUser = get_user_model()
 
-# --- JWT Token生成辅助函数 (采纳队友的增强版) ---
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
     refresh["role"] = user.role
@@ -46,9 +40,7 @@ def get_tokens_for_user(user):
         "access": str(refresh.access_token),
     }
 
-# =============================================================================
-# DRF 认证相关的视图 (用于API，采纳队友的增强版)
-# =============================================================================
+
 class LoginAPIView(APIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = LoginSerializer
@@ -123,11 +115,8 @@ class LogoutAPIView(APIView):
             )
 
 
-# =============================================================================
-# 传统 Django 认证视图 (用于渲染模板，保留队友的新增功能)
-# =============================================================================
 class UserLoginView(LoginView):
-    template_name = 'users/login.html' # 路径修正为 users/login.html
+    template_name = 'users/login.html'
     authentication_form = CustomAuthenticationForm
 
     def form_invalid(self, form):
@@ -141,14 +130,10 @@ class UserLogoutView(LogoutView):
         return response
 
 
-# =============================================================================
-# DRF ViewSets (用于API, 融合双方逻辑)
-# =============================================================================
 class CustomUserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all().order_by('username')
 
     def get_serializer_class(self):
-        # 融合逻辑：保留队友更详细的权限判断
         if self.action in ['update', 'partial_update'] and \
            not (self.request.user.is_staff or \
                 self.request.user.role == CustomUser.Role.ADMIN or \
@@ -157,7 +142,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
         return CustomUserSerializer
 
     def get_permissions(self):
-        # 融合逻辑：保留队友更详细的权限设置
         if self.action == 'list':
             permission_classes = [permissions.IsAuthenticated]
         elif self.action == 'create':
@@ -177,7 +161,6 @@ class CustomUserViewSet(viewsets.ModelViewSet):
 class StudentProfileViewSet(viewsets.ModelViewSet):
     serializer_class = StudentProfileSerializer
 
-    # 融合逻辑：保留队友更详细的 queryset
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
@@ -188,34 +171,28 @@ class StudentProfileViewSet(viewsets.ModelViewSet):
             return StudentProfile.objects.select_related('user', 'department', 'major').filter(user=user)
         return StudentProfile.objects.none()
     
-    # 融合逻辑：保留您的 get_serializer_class
     def get_serializer_class(self):
         user = self.request.user
         if self.action in ['update', 'partial_update'] and user.is_authenticated and user.role == CustomUser.Role.STUDENT:
             return StudentProfileSelfUpdateSerializer
         return StudentProfileSerializer
     
-    # 融合逻辑：保留队友的权限和安全设置
     def get_permissions(self):
-        # ... (此处省略队友的详细权限代码，以保持简洁，但最终版本应包含它们)
         if self.action == 'list':
             permission_classes = [permissions.IsAuthenticated, IsAdminRole | IsTeacherRole]
         elif self.action == 'create':
             permission_classes = [IsAdminRole]
-        # ... 等等
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def perform_update(self, serializer):
-        # ... (此处省略队友的更新安全检查，最终版本应包含它)
         serializer.save()
 
 
 class TeacherProfileViewSet(viewsets.ModelViewSet):
     serializer_class = TeacherProfileSerializer
 
-    # 融合逻辑：保留队友更详细的 queryset
     def get_queryset(self):
         user = self.request.user
         if user.is_authenticated:
@@ -225,23 +202,18 @@ class TeacherProfileViewSet(viewsets.ModelViewSet):
                 return TeacherProfile.objects.select_related('user', 'department').filter(user=user)
         return TeacherProfile.objects.none()
 
-    # 融合逻辑：保留您的 get_serializer_class
     def get_serializer_class(self):
         user = self.request.user
         if self.action in ['update', 'partial_update'] and user.is_authenticated and user.role == CustomUser.Role.TEACHER:
             return TeacherProfileSelfUpdateSerializer
         return TeacherProfileSerializer
     
-    # 融合逻辑：保留队友的权限和安全设置
     def get_permissions(self):
-        # ... (此处省略队友的详细权限代码，以保持简洁，但最终版本应包含它们)
         if self.action == 'list':
             permission_classes = [IsAdminRole]
-        # ... 等等
         else:
             permission_classes = [permissions.IsAuthenticated]
         return [permission() for permission in permission_classes]
 
     def perform_update(self, serializer):
-        # ... (此处省略队友的更新安全检查，最终版本应包含它)
         serializer.save()

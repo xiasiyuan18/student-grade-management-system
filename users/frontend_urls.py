@@ -1,15 +1,13 @@
-# users/frontend_urls.py (修正后)
-
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import frontend_views
 
-# 命名空间保持为 'users'
+
 app_name = 'users'
 
 urlpatterns = [
     # --- 认证URL ---
-    # ✨ 关键修正 #1：将登录页的 name 修改为 'login-page'，与团队约定和 Mixin 中的调用保持一致
+
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login-page'),
     path('logout/', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
 

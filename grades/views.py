@@ -14,7 +14,6 @@ from decimal import Decimal, InvalidOperation
 from .models import Grade, TeachingAssignment
 from courses.models import CourseEnrollment
 from users.models import Student, Teacher, CustomUser
-# 确保在 grades 应用下创建了 forms.py 文件并添加了 GradeFormForAdmin
 from .forms import GradeFormForAdmin 
 from common.mixins import TeacherRequiredMixin, StudentRequiredMixin, AdminRequiredMixin, OwnDataOnlyMixin
 
@@ -44,18 +43,14 @@ class TeacherCoursesView(TeacherRequiredMixin, generic.ListView):
         return context
 
 
-# =============================================================================
-# ✨ 新增功能: 教师查看自己课程的学生名单
-# =============================================================================
 class TeacherStudentListView(TeacherRequiredMixin, generic.DetailView):
     """教师查看特定课程的学生名单"""
     model = TeachingAssignment
     template_name = 'grades/teacher_student_list.html'
     context_object_name = 'assignment'
-    pk_url_kwarg = 'assignment_id' # URL 中的主键参数名为 assignment_id
+    pk_url_kwarg = 'assignment_id'
 
     def get_queryset(self):
-        # 确保教师只能访问自己的课程
         try:
             teacher_profile = self.request.user.teacher_profile
             if teacher_profile:
@@ -67,10 +62,9 @@ class TeacherStudentListView(TeacherRequiredMixin, generic.DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         assignment = self.get_object()
-        # 获取所有选修该课程的学生
         enrollments = CourseEnrollment.objects.filter(
             teaching_assignment=assignment,
-            status='ENROLLED' # 只看已选课的学生
+            status='ENROLLED'
         ).select_related('student__user', 'student__major').order_by('student__student_id_num')
         
         context['enrollments'] = enrollments
@@ -98,16 +92,13 @@ class GradeEntryView(TeacherRequiredMixin, View):
             status='ENROLLED'
         ).select_related('student__user', 'student__department').order_by('student__student_id_num')
         
-        # 获取已有成绩记录
         existing_grades = {
             grade.student.pk: grade for grade in Grade.objects.filter(teaching_assignment=assignment)
         }
         
-        # 为每个学生准备数据
         student_data = []
         for enrollment in enrollments:
             student = enrollment.student
-            # ✨ 关键：将 student.id 修正为 student.pk
             existing_grade = existing_grades.get(student.pk)
             student_data.append({
                 'student': student,
@@ -135,11 +126,7 @@ class GradeEntryView(TeacherRequiredMixin, View):
         
         updated_count = 0
         error_count = 0
-        error_details = []  # ✅ 新增：收集详细错误信息
-        
-        # ✅ 新增：记录处理的表单数据，用于调试
-        print(f"DEBUG: 处理授课安排 {assignment_id} 的成绩录入")
-        print(f"DEBUG: POST 数据: {dict(request.POST)}")
+        error_details = []
         
         for key, value in request.POST.items():
             if key.startswith('score_') and value.strip():
@@ -147,26 +134,18 @@ class GradeEntryView(TeacherRequiredMixin, View):
                     student_pk = int(key.replace('score_', ''))
                     score_val = Decimal(value)
                     
-                    print(f"DEBUG: 处理学生 {student_pk}, 分数 {score_val}")
-                    
-                    # ✅ 改进：详细检查分数范围
                     if not (0 <= score_val <= 100):
                         error_count += 1
                         error_details.append(f"学生ID {student_pk}: 分数 {score_val} 超出有效范围(0-100)")
-                        print(f"DEBUG: 分数范围错误 - 学生 {student_pk}, 分数 {score_val}")
                         continue
                     
-                    # ✅ 改进：详细检查学生是否存在
                     try:
                         student = Student.objects.get(pk=student_pk)
-                        print(f"DEBUG: 找到学生 {student.name} ({student.student_id_num})")
                     except Student.DoesNotExist:
                         error_count += 1
                         error_details.append(f"学生ID {student_pk}: 学生不存在")
-                        print(f"DEBUG: 学生不存在 - ID {student_pk}")
                         continue
                     
-                    # ✅ 改进：详细检查选课状态
                     enrollment = CourseEnrollment.objects.filter(
                         student=student, 
                         teaching_assignment=assignment
@@ -175,42 +154,35 @@ class GradeEntryView(TeacherRequiredMixin, View):
                     if not enrollment:
                         error_count += 1
                         error_details.append(f"学生 {student.name}({student.student_id_num}): 未找到选课记录")
-                        print(f"DEBUG: 未找到选课记录 - 学生 {student.name}")
                         continue
                     
                     if enrollment.status != 'ENROLLED':
                         error_count += 1
                         error_details.append(f"学生 {student.name}({student.student_id_num}): 选课状态为 '{enrollment.status}'，不是 'ENROLLED'")
-                        print(f"DEBUG: 选课状态错误 - 学生 {student.name}, 状态 {enrollment.status}")
                         continue
                     
-                    # ✅ 如果所有检查都通过，创建或更新成绩
                     grade, created = Grade.objects.update_or_create(
                         student=student,
                         teaching_assignment=assignment,
                         defaults={'score': score_val, 'last_modified_by': request.user}
                     )
                     updated_count += 1
-                    print(f"DEBUG: 成功{'创建' if created else '更新'}成绩 - 学生 {student.name}, 分数 {score_val}")
                     
                 except (ValueError, InvalidOperation) as e:
                     error_count += 1
                     error_details.append(f"学生ID {student_pk}: 分数格式错误 - {str(e)}")
-                    print(f"DEBUG: 分数格式错误 - 学生ID {student_pk}, 错误: {e}")
                     continue
                 except Exception as e:
                     error_count += 1
                     error_details.append(f"学生ID {student_pk}: 未知错误 - {str(e)}")
-                    print(f"DEBUG: 未知错误 - 学生ID {student_pk}, 错误: {e}")
                     continue
     
-        # ✅ 改进：显示详细的错误信息
         if updated_count > 0:
             messages.success(request, f"成功录入/更新了 {updated_count} 条成绩记录。")
         
         if error_count > 0:
             messages.warning(request, f"有 {error_count} 条记录录入失败，详细信息：")
-            for detail in error_details[:10]:  # 最多显示10个错误
+            for detail in error_details[:10]:
                 messages.error(request, detail)
             if len(error_details) > 10:
                 messages.error(request, f"还有 {len(error_details) - 10} 个错误未显示...")
@@ -225,7 +197,6 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
     context_object_name = 'grades_list'
 
     def get_queryset(self):
-        """只返回当前登录学生的成绩"""
         try:
             student_profile = self.request.user.student_profile
             if student_profile:
@@ -244,16 +215,14 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
         context = super().get_context_data(**kwargs)
         context['page_title'] = '我的成绩'
         
-        # 获取成绩数据
         grades = context['grades_list']
         
         if grades.exists():
-            # 计算基本统计信息
             total_courses = grades.count()
             graded_courses = grades.filter(score__isnull=False)
             completed_courses = graded_courses.filter(score__gte=60).count()
             
-            # 计算总学分（已获得学分，即成绩>=60的课程）
+            # 计算总学分
             total_credits = sum(
                 grade.teaching_assignment.course.credits 
                 for grade in graded_courses.filter(score__gte=60)
@@ -265,7 +234,7 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
             if avg_score:
                 avg_score = round(float(avg_score), 2)
             
-            # 计算加权平均分（按学分加权）
+            # 计算加权平均分
             weighted_total = 0
             credit_total = 0
             for grade in graded_courses:
@@ -276,16 +245,16 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
             
             weighted_avg_score = round(weighted_total / credit_total, 2) if credit_total > 0 else None
             
-            # 计算成绩分布
+            # 成绩分布
             grade_distribution = {
-                'excellent': graded_courses.filter(score__gte=90).count(),  # 优秀
-                'good': graded_courses.filter(score__gte=80, score__lt=90).count(),  # 良好
-                'average': graded_courses.filter(score__gte=70, score__lt=80).count(),  # 中等
-                'pass': graded_courses.filter(score__gte=60, score__lt=70).count(),  # 及格
-                'fail': graded_courses.filter(score__lt=60).count(),  # 不及格
+                'excellent': graded_courses.filter(score__gte=90).count(),
+                'good': graded_courses.filter(score__gte=80, score__lt=90).count(),
+                'average': graded_courses.filter(score__gte=70, score__lt=80).count(),
+                'pass': graded_courses.filter(score__gte=60, score__lt=70).count(),
+                'fail': graded_courses.filter(score__lt=60).count(),
             }
             
-            # 计算GPA统计
+            # GPA统计
             gpa_grades = graded_courses.exclude(gpa__isnull=True)
             if gpa_grades.exists():
                 avg_gpa = gpa_grades.aggregate(avg=Avg('gpa'))['avg']
@@ -306,7 +275,7 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
                 avg_gpa = None
                 weighted_avg_gpa = None
             
-            # 计算通过率
+            # 通过率
             pass_rate = round(completed_courses / total_courses * 100, 1) if total_courses > 0 else 0
             
             context.update({
@@ -323,7 +292,7 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
                 'grade_distribution': grade_distribution,
             })
             
-            # 按学期分组的成绩
+            # 按学期分组
             semester_grades = {}
             for grade in grades:
                 semester = grade.teaching_assignment.semester
@@ -334,7 +303,6 @@ class MyGradesView(StudentRequiredMixin, generic.ListView):
             context['semester_grades'] = semester_grades
             
         else:
-            # 如果没有成绩，设置默认值
             context.update({
                 'total_courses': 0, 'completed_courses': 0, 'graded_courses': 0,
                 'ungraded_courses': 0, 'total_credits': 0, 'average_score': None,
@@ -351,10 +319,8 @@ class GradeDeleteView(TeacherRequiredMixin, View):
     """教师删除成绩记录"""
     
     def post(self, request, grade_id):
-        """删除指定的成绩记录"""
         grade = get_object_or_404(Grade, pk=grade_id)
         
-        # 权限检查：确保是当前教师的课程
         try:
             teacher_profile = request.user.teacher_profile
             if grade.teaching_assignment.teacher != teacher_profile:
@@ -374,15 +340,12 @@ class GradeDeleteView(TeacherRequiredMixin, View):
         return redirect('grades:grade-entry', assignment_id=assignment_id)
 
 
-# =============================================================================
-# ✨ 新增功能: 管理员成绩管理 (带搜索功能)
-# =============================================================================
 class AdminGradeListView(AdminRequiredMixin, generic.ListView):
     """管理员查看和筛选所有成绩"""
     model = Grade
     template_name = 'grades/admin_grade_list.html'
     context_object_name = 'grades'
-    paginate_by = 20  # 每页显示20条记录
+    paginate_by = 20
 
     def get_queryset(self):
         queryset = Grade.objects.select_related(
@@ -391,7 +354,6 @@ class AdminGradeListView(AdminRequiredMixin, generic.ListView):
             'teaching_assignment__teacher'
         ).order_by('-entry_time')
 
-        # 获取搜索查询参数
         search_query = self.request.GET.get('q', '').strip()
         if search_query:
             queryset = queryset.filter(

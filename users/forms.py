@@ -1,5 +1,3 @@
-# users/forms.py
-
 from django import forms
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -19,10 +17,6 @@ class CustomAuthenticationForm(AuthenticationForm):
         self.fields['username'].widget.attrs.update({'class': 'form-control', 'placeholder': '请输入用户名'})
         self.fields['password'].widget.attrs.update({'class': 'form-control', 'placeholder': '请输入密码'})
 
-
-# =============================================================================
-# 管理员创建功能表单
-# =============================================================================
 class StudentCreateForm(forms.Form):
     """
     管理员创建新学生的表单。
@@ -63,7 +57,6 @@ class StudentCreateForm(forms.Form):
             first_name=cleaned_data['name'][:30],
             role="STUDENT"
         )
-        # 移除 cleaned_data 中不属于 Student 模型的字段
         student_data = {k: v for k, v in cleaned_data.items() if hasattr(Student, k)}
         Student.objects.create(user=user, **student_data)
         return user
@@ -109,11 +102,6 @@ class TeacherCreateForm(forms.Form):
             department=cleaned_data['department']
         )
         return user
-
-
-# =============================================================================
-# 管理员更新功能表单
-# =============================================================================
 class TeacherUpdateForm(forms.ModelForm):
     username = forms.CharField(label="登录用户名")
     email = forms.EmailField(label="邮箱地址", required=False)
@@ -150,11 +138,6 @@ class StudentProfileEditForm(forms.ModelForm):
     class Meta:
         model = Student
         exclude = ['user']
-
-
-# =============================================================================
-# 用户个人中心更新表单
-# =============================================================================
 class StudentProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Student
@@ -221,7 +204,6 @@ class StudentProfileForm(forms.ModelForm):
             'id_card': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '18位身份证号'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'birth_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            # ✅ 修改电话字段为文本输入框，而不是数字输入框
             'phone': forms.TextInput(attrs={
                 'class': 'form-control', 
                 'placeholder': '请输入手机号码',
@@ -274,7 +256,6 @@ class StudentProfileForm(forms.ModelForm):
         
         self.fields['minor_major'].required = False
 
-    # ✅ 添加电话号码验证
     def clean_phone(self):
         phone = self.cleaned_data.get('phone')
         if phone:

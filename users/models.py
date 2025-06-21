@@ -3,7 +3,6 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from decimal import Decimal
 
-# --- 1. 自定义用户管理器 (CustomUserManager) ---
 class CustomUserManager(BaseUserManager):
     """
     为 CustomUser 模型定制的用户管理器。
@@ -31,7 +30,6 @@ class CustomUserManager(BaseUserManager):
         return self.create_user(username, password, **extra_fields)
 
 
-# --- 2. 统一的自定义用户模型 (CustomUser) ---
 class CustomUser(AbstractUser):
     """
     统一的自定义用户模型。
@@ -67,7 +65,6 @@ class CustomUser(AbstractUser):
         verbose_name_plural = _('系统用户')
 
 
-# --- 3. 学生 Profile 模型 ---
 class Student(models.Model):
     """
     学生 Profile 模型，存储学生特有的信息。
@@ -86,8 +83,8 @@ class Student(models.Model):
     id_card = models.CharField(
         max_length=18, 
         unique=True, 
-        null=True,      # ✅ 允许数据库中为 NULL
-        blank=True,     # ✅ 允许表单中为空
+        null=True,      
+        blank=True,    
         verbose_name="身份证号",
         help_text="18位身份证号，可选填"
     )
@@ -118,7 +115,7 @@ class Student(models.Model):
     )
     grade_year = models.IntegerField(_("年级/入学年份"), blank=True, null=True)
     
-    # ✨ 主修相关
+
     major = models.ForeignKey(
         "departments.Major", 
         on_delete=models.PROTECT, 
@@ -132,7 +129,7 @@ class Student(models.Model):
         related_name="major_department_students"
     )
     
-    # ✨ 辅修相关（新增）
+
     minor_major = models.ForeignKey(
         "departments.Major",
         on_delete=models.SET_NULL,
@@ -152,10 +149,10 @@ class Student(models.Model):
     
     degree_level = models.CharField(_("学位等级"), max_length=20)
     credits_earned = models.DecimalField(
-        _("主修已修学分"), max_digits=5, decimal_places=1, default=0.0  # ✅ 修改为更准确的描述
+        _("主修已修学分"), max_digits=5, decimal_places=1, default=0.0  
     )
     
-    # ✨ 新增：辅修学分
+
     minor_credits_earned = models.DecimalField(
         _("辅修已修学分"), max_digits=5, decimal_places=1, default=0.0
     )
@@ -223,7 +220,6 @@ class Student(models.Model):
         super().save(*args, **kwargs)
 
 
-# --- 4. 教师 Profile 模型 ---
 class Teacher(models.Model):
     """
     教师 Profile 模型，存储教师特有的信息。

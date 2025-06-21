@@ -1,20 +1,14 @@
-# student_grade_management_system/grades/models.py
 from django.conf import settings
 from django.db import models
-from decimal import Decimal # 导入 Decimal
-from django.core.validators import MinValueValidator, MaxValueValidator # 导入验证器
-
-# 确保导入正确的模型类
+from decimal import Decimal 
+from django.core.validators import MinValueValidator, MaxValueValidator
 from courses.models import TeachingAssignment 
 from users.models import Student 
 
 
 class Grade(models.Model):
-    """
-    成绩模型
-    关联到学生和具体的授课安排 (TeachingAssignment)
-    """
-    # 整合 student 字段：指向 Student，on_delete=PROTECT，并添加 related_name
+    """成绩模型"""
+    
     student = models.ForeignKey(
         Student, 
         on_delete=models.PROTECT, 
@@ -22,7 +16,6 @@ class Grade(models.Model):
         related_name='grades_received' 
     )
 
-    # 整合 teaching_assignment 字段
     teaching_assignment = models.ForeignKey(
         TeachingAssignment, 
         on_delete=models.PROTECT, 
@@ -36,10 +29,9 @@ class Grade(models.Model):
         null=True,
         blank=True,
         help_text="百分制分数，保留两位小数",
-        validators=[MinValueValidator(Decimal('0.0')), MaxValueValidator(Decimal('100.0'))] # <--- 关键：添加分数验证器
+        validators=[MinValueValidator(Decimal('0.0')), MaxValueValidator(Decimal('100.0'))]
     )
 
-    # <--- 关键：添加 GPA 字段 --->
     gpa = models.DecimalField(
         verbose_name='绩点',
         max_digits=3,
@@ -48,7 +40,6 @@ class Grade(models.Model):
         blank=True,
         help_text="根据分数自动计算的绩点"
     )
-    # <--- END GPA 字段 --->
 
     entry_time = models.DateTimeField(
         verbose_name="录入时间", auto_now_add=True, help_text="成绩首次录入系统的时间"
@@ -65,7 +56,6 @@ class Grade(models.Model):
         verbose_name="最后修改时间", auto_now=True
     )
 
-    # term, course, teacher 字段现在作为 property 从 teaching_assignment 获取
     @property
     def term(self):
         if self.teaching_assignment:
@@ -90,7 +80,6 @@ class Grade(models.Model):
         score_display = str(self.score) if self.score is not None else "未录入"
         return f"{student_display} - {assignment_display}: {score_display}"
 
-    # <--- 关键：添加 save 方法以自动计算绩点 --->
     def save(self, *args, **kwargs):
         if self.score is not None:
             # 绩点计算逻辑
@@ -113,7 +102,6 @@ class Grade(models.Model):
         else:
             self.gpa = None 
         super().save(*args, **kwargs)
-    # <--- END save 方法 --->
 
     class Meta:
         verbose_name = "成绩"

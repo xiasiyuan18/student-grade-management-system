@@ -64,7 +64,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "student-grade-management-system",
         "USER": "root",
-        "PASSWORD": "123456dp",
+        "PASSWORD": "wzk23@Mysql",
         "HOST": "localhost",
         "PORT": "3306",
         "OPTIONS": {
@@ -96,8 +96,6 @@ TIME_ZONE = "Asia/Shanghai"
 USE_I18N = True
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [
     BASE_DIR / "static",

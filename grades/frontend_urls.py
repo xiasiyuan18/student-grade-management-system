@@ -11,7 +11,7 @@ urlpatterns = [
     path('delete/<int:grade_id>/', views.GradeDeleteView.as_view(), name='grade-delete'),
     
     # -- 学生功能 --
-    path('my-grades/', views.MyGradesView.as_view(), name='my-grades'),-
+    path('my-grades/', views.MyGradesView.as_view(), name='my-grades'),
     path('admin/list/', views.AdminGradeListView.as_view(), name='admin-grade-list'),
     path('admin/update/<int:pk>/', views.AdminGradeUpdateView.as_view(), name='admin-grade-update'),
     path('admin/delete/<int:pk>/', views.AdminGradeDeleteView.as_view(), name='admin-grade-delete'),

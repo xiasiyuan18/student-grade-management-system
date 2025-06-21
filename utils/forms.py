@@ -1,9 +1,5 @@
-# utils/forms.py
-
 from django import forms
 
-# 将类名从 FileUploadForm 修改为 StudentImportForm
-# 这样就和 views.py 中的导入语句匹配了
 class StudentImportForm(forms.Form):
     """
     用于学生批量导入的文件上传表单。

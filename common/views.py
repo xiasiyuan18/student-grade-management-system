@@ -8,7 +8,7 @@ from django.contrib import messages
 from decimal import Decimal
 
 from courses.models import Course, CourseEnrollment, TeachingAssignment
-from grades.models import Grade  # ✅ Grade 在 grades 应用中，不在 courses 中
+from grades.models import Grade
 from departments.models import Department, Major
 from users.models import Teacher, Student, CustomUser
 from .mixins import (
@@ -239,7 +239,7 @@ class TeacherInfoListView(BaseInfoQueryMixin, SensitiveInfoMixin, generic.ListVi
                 active_enrollments = all_enrollments.exclude(status='DROPPED')
                 print(f"有效选课记录数: {active_enrollments.count()}")
                 
-                # 获取教师ID列表 - 这里需要根据Teacher模型的实际主键字段来修改
+                # 获取教师ID列表
                 teacher_ids = list(active_enrollments.values_list('teaching_assignment__teacher_id', flat=True).distinct())
                 print(f"相关教师ID列表: {teacher_ids}")
                 
@@ -351,11 +351,11 @@ class StudentInfoView(StudentRequiredMixin, generic.TemplateView):
                 ).order_by('-enrollment_date')
                 context['enrollments'] = enrollments
                 
-                # ✅ 实时计算并更新学分
+                # 实时计算并更新学分
                 credit_info = calculate_and_update_student_credits(student_profile)
                 context['credit_info'] = credit_info
                 
-                # ✅ 获取成绩统计信息
+                # 获取成绩统计信息
                 from django.db.models import Avg, Count
                 grades = Grade.objects.filter(student=student_profile, score__isnull=False)
                 
@@ -399,7 +399,7 @@ class GradeEntryView(TeacherRequiredMixin, View):
         
         updated_count = 0
         error_count = 0
-        updated_students = set()  # ✅ 新增：记录需要更新学分的学生
+        updated_students = set()  # 记录需要更新学分的学生
         
         for key, value in request.POST.items():
             if key.startswith('score_') and value.strip():
@@ -423,13 +423,13 @@ class GradeEntryView(TeacherRequiredMixin, View):
                         defaults={'score': score_val, 'last_modified_by': request.user}
                     )
                     updated_count += 1
-                    updated_students.add(student)  # ✅ 新增：记录学生
+                    updated_students.add(student)  # 记录学生
                     
                 except (ValueError, Student.DoesNotExist):
                     error_count += 1
                     continue
         
-        # ✅ 新增：为所有更新了成绩的学生重新计算学分
+        # 为所有更新了成绩的学生重新计算学分
         for student in updated_students:
             calculate_and_update_student_credits(student)
         
@@ -471,9 +471,8 @@ from datetime import datetime
 
 from departments.models import Department, Major
 from users.models import CustomUser, Student
-# Remove the problematic import - forms module doesn't exist
-# from .forms import StudentImportForm
-# ✅ 修改：使用现有的 AdminRequiredMixin 替代不存在的函数
+
+# 使用现有的 AdminRequiredMixin 替代不存在的函数
 from common.mixins import AdminRequiredMixin
 from django import forms
 
@@ -485,17 +484,10 @@ class StudentImportForm(forms.Form):
     )
 
 
-class StudentImportView(AdminRequiredMixin, FormView):  # ✅ 使用 AdminRequiredMixin
+class StudentImportView(AdminRequiredMixin, FormView):
     template_name = "utils/student_import.html"
     form_class = StudentImportForm
     success_url = reverse_lazy("users:student-list")
-
-    # ✅ 删除：不再需要 dispatch 方法，AdminRequiredMixin 会自动处理权限
-    # def dispatch(self, request, *args, **kwargs):
-    #     if not is_admin_or_teacher_or_manager(request.user):
-    #         messages.error(request, "您没有权限访问此页面。")
-    #         return redirect("core:home")
-    #     return super().dispatch(request, *args, **kwargs)
 
     @transaction.atomic
     def form_valid(self, form):
@@ -543,8 +535,8 @@ class StudentImportView(AdminRequiredMixin, FormView):  # ✅ 使用 AdminRequir
 
                 # --- 核心逻辑：根据院系和专业名查找对象 ---
                 try:
-                    department = Department.objects.get(dept_name=department_name)  # ✅ 修正字段名
-                    major = Major.objects.get(major_name=major_name, department=department)  # ✅ 修正字段名
+                    department = Department.objects.get(dept_name=department_name)
+                    major = Major.objects.get(major_name=major_name, department=department)
                 except Department.DoesNotExist:
                     errors.append(f"第 {row_num} 行：主修院系 '{department_name}' 不存在。")
                     continue
@@ -556,8 +548,8 @@ class StudentImportView(AdminRequiredMixin, FormView):  # ✅ 使用 AdminRequir
                 minor_department = None
                 if minor_department_name and minor_major_name:
                     try:
-                        minor_department = Department.objects.get(dept_name=minor_department_name)  # ✅ 修正字段名
-                        minor_major = Major.objects.get(major_name=minor_major_name, department=minor_department)  # ✅ 修正字段名
+                        minor_department = Department.objects.get(dept_name=minor_department_name)
+                        minor_major = Major.objects.get(major_name=minor_major_name, department=minor_department)
                     except Department.DoesNotExist:
                         errors.append(f"第 {row_num} 行：辅修院系 '{minor_department_name}' 不存在。")
                         continue
@@ -569,12 +561,12 @@ class StudentImportView(AdminRequiredMixin, FormView):  # ✅ 使用 AdminRequir
                 user = CustomUser.objects.create_user(
                     username=username, 
                     password=password, 
-                    first_name=name,  # ✅ 使用 first_name 而不是 full_name
-                    role=CustomUser.Role.STUDENT  # ✅ 使用正确的角色枚举
+                    first_name=name,  # 使用 first_name 而不是 full_name
+                    role=CustomUser.Role.STUDENT  # 使用正确的角色枚举
                 )
                 Student.objects.create(
                     user=user, 
-                    student_id_num=student_id_num,  # ✅ 修正字段名
+                    student_id_num=student_id_num,
                     name=name,
                     major=major, 
                     department=department,

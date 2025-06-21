@@ -21,7 +21,6 @@
         <div class="card-body">
             {# 表单必须使用 POST 方法提交数据 #}
             <form method="post">
-                {# Django 的安全令牌，所有POST表单都必须包含 #}
                 {% csrf_token %}
 
                 {# 如果表单有不针对任何特定字段的全局错误，在这里显示 #}
@@ -60,7 +59,6 @@
                 <button type="submit" class="btn btn-primary">保存</button>
 
                 {# “取消”链接，点击后会返回教师列表页面 #}
-                {# 注意：这里的 'teacher-list' 必须和你的 urls.py 中的 name='teacher-list' 完全对应 #}
                 <a href="{% url 'users:teacher-list' %}" class="btn btn-secondary">取消</a>
             </form>
         </div>

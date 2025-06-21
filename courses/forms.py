@@ -1,15 +1,13 @@
-# student_grade_management_system/courses/forms.py
 from django import forms
 from .models import Course, TeachingAssignment
 from users.models import Teacher
 from departments.models import Department
-from users.models import Student  # 导入 Student 模型
+from users.models import Student  
 
 class CourseForm(forms.ModelForm):
     class Meta:
         model = Course
-        fields = '__all__' # 包含所有字段
-        # 也可以明确指定字段，例如：fields = ['course_id', 'course_name', 'description', 'credits', 'degree_level', 'department']
+        fields = '__all__' 
         widgets = {
             'course_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '请输入课程编号'}),
             'course_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '请输入课程名称'}),
@@ -50,14 +48,13 @@ class TeachingAssignmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 设置教师选项
         self.fields['teacher'].queryset = Teacher.objects.select_related('user', 'department')
-        # 简化显示格式，避免字段名错误
+
         self.fields['teacher'].label_from_instance = self.get_teacher_display
         
-        # 设置课程选项
+        
         self.fields['course'].queryset = Course.objects.select_related('department')
-        # 简化显示格式，避免字段名错误
+        
         self.fields['course'].label_from_instance = self.get_course_display
 
     def get_teacher_display(self, obj):
@@ -106,10 +103,10 @@ class StudentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # 设置辅修字段为非必填
+        
         self.fields['minor_major'].required = False
         self.fields['minor_department'].required = False
         
-        # 设置辅修字段的空选项
+        
         self.fields['minor_major'].empty_label = "请选择辅修专业（可选）"
         self.fields['minor_department'].empty_label = "请选择辅修院系（可选）"

@@ -1,8 +1,4 @@
-{# users/templates/users/login.html #}
-
 {% extends "base.html" %}
-
-{# 使用我们为未登录用户定义的 content_guest 块 #}
 {% block content_guest %}
 
     <div class="card shadow-sm">
@@ -17,10 +13,6 @@
 
             <form method="post">
                 {% csrf_token %}
-                
-                {# 直接使用 as_p 会为每个字段生成一个 <p> 标签包裹的表单元素 #}
-                {# 为了应用样式，我们应该去修改Django自带的AuthenticationForm，但这比较复杂 #}
-                {# 我们先用一个简单有效的方式 #}
 
                 <div class="mb-3">
                     <label for="{{ form.username.id_for_label }}" class="form-label">用户名</label>

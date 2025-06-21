@@ -8,7 +8,6 @@ from users.models import CustomUser
 def role_required(allowed_roles):
     """
     角色权限装饰器
-    用法: @role_required([CustomUser.Role.ADMIN, CustomUser.Role.TEACHER])
     """
     def decorator(view_func):
         @wraps(view_func)

@@ -1,10 +1,10 @@
-# student_grade_management_system/courses/serializers.py
-from rest_framework import serializers
-from .models import Course, TeachingAssignment # 导入模型
 
-# 假设 users.models.Teacher 有 name 字段
+from rest_framework import serializers
+from .models import Course, TeachingAssignment 
+
+
 from users.models import Teacher 
-# 假设 departments.models.Department 有 dept_name 字段
+
 from departments.models import Department 
 
 
@@ -13,8 +13,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = '__all__' # 包含所有字段
-        # 移除 read_only_fields = ('course_hours',) 因为 course_hours 属性已从模型中移除
+        fields = '__all__' 
 
 
 class TeachingAssignmentSerializer(serializers.ModelSerializer):

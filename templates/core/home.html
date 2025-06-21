@@ -63,7 +63,7 @@
             </div>
         </div>
     </div>
-    <!-- 【已修改】右侧图表: 全校学生GPA分布 -->
+    <!-- 右侧图表: 全校学生GPA分布 -->
     <div class="col-lg-5 mb-4">
         <div class="card shadow">
             <div class="card-header">全校学生GPA分布</div>
@@ -190,8 +190,8 @@ document.addEventListener('DOMContentLoaded', function () {
             plugins: { legend: { display: false } }
         });
 
-        // 【已修改】右侧图表
-        renderChart('gpaDistributionChart', 'bar', { // 改为 bar chart
+        // 右侧图表
+        renderChart('gpaDistributionChart', 'bar', {
             id: 'gpa-data', // 使用新的数据ID
             label: '学生人数',
             emptyMessage: '暂无GPA分布数据'

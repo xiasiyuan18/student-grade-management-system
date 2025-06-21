@@ -1,4 +1,3 @@
-# courses/frontend_views.py (这个文件用于前端页面视图)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.urls import reverse_lazy
@@ -202,7 +201,7 @@ class BulkEnrollmentView(AdminRequiredMixin, View):
 class StudentProfileEditView(AdminRequiredMixin, SuccessMessageMixin, generic.UpdateView):
     """管理员编辑学生档案"""
     model = Student
-    form_class = StudentForm  # ✅ 确保使用了正确的表单
+    form_class = StudentForm  # 确保使用了正确的表单
     template_name = 'users/student_profile_edit.html'
     success_url = reverse_lazy('users:student-list')
     success_message = "学生档案信息已成功更新！"
